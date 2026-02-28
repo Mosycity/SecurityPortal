@@ -1,0 +1,1720 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SecureWatch — Vendor Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+[data-theme="dark"]{
+  --bg:#080c10;--surface:#0d1117;--surface2:#131920;--border:#1e2d3d;
+  --accent:#00e5ff;--ok:#00e676;--text:#c9d5e0;--muted:#4a6177;
+  --crit:#ff3b5c;--high:#ff6b35;--med:#ffc107;--low:#00e676;
+  --grid:rgba(0,229,255,0.03);--header-bg:rgba(8,12,16,0.96);
+}
+[data-theme="light"]{
+  --bg:#f0f4f8;--surface:#ffffff;--surface2:#f8fafc;--border:#d1dbe8;
+  --accent:#0077aa;--ok:#16a34a;--text:#1e293b;--muted:#64748b;
+  --crit:#dc2626;--high:#ea580c;--med:#d97706;--low:#16a34a;
+  --grid:rgba(0,119,170,0.04);--header-bg:rgba(255,255,255,0.96);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+.container{position:relative;z-index:1;max-width:1700px;margin:0 auto;padding:0 18px 48px}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;
+  border-bottom:1px solid var(--border);background:var(--header-bg);backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:100;gap:10px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px}
+.logo-icon{width:28px;height:28px;background:var(--accent);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);animation:pulse-hex 3s infinite;flex-shrink:0}
+@keyframes pulse-hex{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}}
+.logo-text{font-size:1.1rem;font-weight:800;letter-spacing:.05em;white-space:nowrap}
+.logo-text span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.last-updated{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted)}
+.live-badge{display:flex;align-items:center;gap:4px;background:rgba(0,230,118,.1);
+  border:1px solid rgba(0,230,118,.3);padding:3px 8px;border-radius:20px;
+  font-size:.62rem;font-weight:700;color:var(--ok);letter-spacing:.08em;white-space:nowrap}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.theme-toggle{background:var(--surface2);border:1px solid var(--border);border-radius:20px;
+  padding:3px 9px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;color:var(--muted);transition:all .2s}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.refresh-control{display:flex;align-items:center;gap:4px}
+.refresh-select{background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+  padding:3px 6px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.66rem;cursor:pointer}
+.refresh-countdown{font-family:'Share Tech Mono',monospace;font-size:.64rem;color:var(--accent);min-width:32px}
+
+/* HEADER BADGE ROW — compact stats */
+.stats-inline{display:flex;align-items:center;gap:6px;padding:6px 18px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.si-item{display:flex;align-items:center;gap:5px;font-size:.68rem;padding:3px 8px;
+  border-radius:4px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+.si-label{color:var(--muted);font-size:.6rem;text-transform:uppercase;letter-spacing:.08em}
+.si-val{font-family:'Share Tech Mono',monospace;font-weight:700}
+.si-val.c{color:var(--crit)}.si-val.h{color:var(--high)}.si-val.m{color:var(--med)}
+.si-val.l{color:var(--low)}.si-val.t{color:var(--accent)}.si-val.k{color:var(--crit)}
+.bm-badge{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:4px;
+  background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.3);cursor:pointer;transition:all .2s}
+.bm-badge:hover{background:rgba(255,193,7,.2)}
+.bm-badge-label{font-size:.62rem;font-weight:700;color:var(--med)}
+.bm-badge-count{font-family:'Share Tech Mono',monospace;font-size:.7rem;font-weight:700;color:var(--med)}
+
+/* NAV */
+.nav-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
+.nav-tab{padding:11px 18px;cursor:pointer;font-size:.74rem;font-weight:700;letter-spacing:.06em;
+  color:var(--muted);border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;white-space:nowrap}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-section{display:none}
+.nav-section.active{display:block}
+
+/* ALERT BANNER */
+.alert-banner{display:none;align-items:center;gap:12px;padding:10px 15px;margin:16px 0 0;
+  background:rgba(255,59,92,.08);border:1px solid rgba(255,59,92,.3);border-radius:8px;
+  animation:alertPulse 2s ease infinite}
+.alert-banner.show{display:flex}
+@keyframes alertPulse{0%,100%{border-color:rgba(255,59,92,.3)}50%{border-color:rgba(255,59,92,.7)}}
+.alert-text{font-size:.78rem;color:var(--text);flex:1}
+.alert-text strong{color:var(--crit)}
+.alert-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.95rem;padding:2px 5px}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px;flex-wrap:wrap;gap:8px}
+.section-title{font-size:.66rem;font-weight:700;letter-spacing:.15em;color:var(--muted);text-transform:uppercase}
+.header-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+
+/* VENDOR AREA */
+.vendor-area{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.vendor-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;
+  transition:all .2s;font-family:'Syne',sans-serif;font-size:.76rem;font-weight:600;color:var(--muted);user-select:none}
+.vendor-chip:hover{border-color:var(--accent);color:var(--text)}
+.vendor-chip.selected{border-color:var(--accent);background:rgba(0,229,255,.08);color:var(--accent)}
+.vendor-chip .vc-check{width:13px;height:13px;border:1.5px solid var(--border);border-radius:3px;
+  display:flex;align-items:center;justify-content:center;font-size:.5rem;transition:all .2s;flex-shrink:0}
+.vendor-chip.selected .vc-check{background:var(--accent);border-color:var(--accent);color:#000}
+.vendor-chip .vc-badge{background:rgba(255,59,92,.15);border:1px solid rgba(255,59,92,.3);
+  color:var(--crit);font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:1px 4px;border-radius:10px;min-width:18px;text-align:center}
+.vendor-chip.loading .vc-badge{color:var(--muted);border-color:var(--border);background:transparent}
+.vendor-chip .vc-remove{margin-left:1px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:.56rem;padding:1px 2px;border-radius:2px;transition:all .15s}
+.vendor-chip .vc-remove:hover{color:var(--crit)}
+.add-vendor-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;background:transparent;
+  border:1px dashed var(--border);border-radius:6px;cursor:pointer;
+  font-family:'Syne',sans-serif;font-size:.76rem;font-weight:600;color:var(--muted);transition:all .2s}
+.add-vendor-btn:hover{border-color:var(--accent);color:var(--accent)}
+.select-all-btn{padding:4px 9px;background:transparent;border:1px solid var(--border);border-radius:5px;
+  cursor:pointer;font-family:'Syne',sans-serif;font-size:.66rem;font-weight:700;color:var(--muted);transition:all .2s}
+.select-all-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* COMBINED FILTER BAR — period + AV on one line */
+.combined-filter-bar{display:flex;align-items:center;gap:10px;margin:12px 0 0;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px}
+.cfb-group{display:flex;align-items:center;gap:6px}
+.cfb-label{font-size:.6rem;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.cfb-divider{width:1px;height:18px;background:var(--border);margin:0 4px}
+.ctrl-select{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  padding:4px 10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.72rem;
+  cursor:pointer;transition:border-color .2s;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a6177'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
+.ctrl-select:focus{outline:none;border-color:var(--accent)}
+/* AV chip buttons */
+.av-btn{padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;
+  cursor:pointer;font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;color:var(--muted);
+  transition:all .15s;white-space:nowrap;line-height:1.4}
+.av-btn:hover{border-color:var(--text);color:var(--text)}
+.av-btn.av-active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.08)}
+.av-btn.av-active.av-net{border-color:#ff3b5c;color:#ff3b5c;background:rgba(255,59,92,.1)}
+.av-btn.av-active.av-adj{border-color:#ff6b35;color:#ff6b35;background:rgba(255,107,53,.1)}
+.av-btn.av-active.av-loc{border-color:#ffc107;color:#ffc107;background:rgba(255,193,7,.1)}
+.av-btn.av-active.av-phy{border-color:#00e676;color:#00e676;background:rgba(0,230,118,.1)}
+
+/* AV TAG */
+.av-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:.56rem;font-weight:700;
+  font-family:'Share Tech Mono',monospace;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.av-NETWORK{background:rgba(255,59,92,.15);border:1px solid rgba(255,59,92,.3);color:var(--crit)}
+.av-ADJACENT{background:rgba(255,107,53,.15);border:1px solid rgba(255,107,53,.3);color:var(--high)}
+.av-LOCAL{background:rgba(255,193,7,.15);border:1px solid rgba(255,193,7,.3);color:var(--med)}
+.av-PHYSICAL{background:rgba(0,230,118,.15);border:1px solid rgba(0,230,118,.3);color:var(--low)}
+.av-UNKNOWN{background:rgba(74,97,119,.2);border:1px solid var(--border);color:var(--muted)}
+
+/* API NOTE */
+.api-note{display:flex;align-items:flex-start;gap:9px;margin:8px 0 0;padding:7px 12px;
+  background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);
+  border-radius:6px;font-size:.7rem;color:var(--med);line-height:1.5}
+.api-note a{color:var(--accent);text-decoration:underline}
+
+/* STATUS */
+.status-row{display:flex;align-items:center;justify-content:space-between;margin:7px 0 0;flex-wrap:wrap;gap:6px}
+.fetch-status{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--muted)}
+.fetch-status.fetching{color:var(--accent)}.fetch-status.done{color:var(--ok)}.fetch-status.err{color:var(--crit)}
+
+/* BUTTONS */
+.export-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;
+  background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.3);
+  border-radius:5px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;color:var(--ok);transition:all .2s}
+.export-btn:hover{background:rgba(0,230,118,.15)}
+.export-bm-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;
+  background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.3);
+  border-radius:5px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;color:var(--med);transition:all .2s}
+.export-bm-btn:hover{background:rgba(255,193,7,.15)}
+.refresh-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;
+  padding:4px 9px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:.66rem;
+  transition:all .2s;display:flex;align-items:center;gap:4px}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+.refresh-btn.spinning .spin-icon{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-icon{display:inline-block}
+
+/* FILTERS */
+.filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 12px}
+.filter-chip{padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;
+  cursor:pointer;font-family:'Syne',sans-serif;font-size:.66rem;font-weight:700;color:var(--muted);transition:all .15s}
+.filter-chip.active-crit{border-color:var(--crit);color:var(--crit);background:rgba(255,59,92,.1)}
+.filter-chip.active-high{border-color:var(--high);color:var(--high);background:rgba(255,107,53,.1)}
+.filter-chip.active-med{border-color:var(--med);color:var(--med);background:rgba(255,193,7,.1)}
+.filter-chip.active-low{border-color:var(--low);color:var(--low);background:rgba(0,230,118,.1)}
+.filter-chip.active-kev{border-color:var(--crit);color:var(--crit);background:rgba(255,59,92,.1)}
+.filter-chip.active-poc{border-color:var(--high);color:var(--high);background:rgba(255,107,53,.1)}
+.filter-chip.active-bm{border-color:var(--med);color:var(--med);background:rgba(255,193,7,.1)}
+.filter-chip:hover:not([class*="active"]){border-color:var(--text);color:var(--text)}
+.search-input{margin-left:auto;background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:4px 10px;color:var(--text);
+  font-family:'Share Tech Mono',monospace;font-size:.74rem;width:180px;transition:border-color .2s}
+.search-input:focus{outline:none;border-color:var(--accent)}
+.search-input::placeholder{color:var(--muted)}
+
+/* MAIN CVE LAYOUT — full width, no sidebar */
+.cve-layout{display:block;margin-top:0}
+
+/* QDS SCORE DISPLAY */
+.qds-pill{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:10px;
+  font-family:'Share Tech Mono',monospace;font-size:.6rem;font-weight:700;white-space:nowrap}
+.qds-critical{background:rgba(255,59,92,.2);border:1px solid rgba(255,59,92,.4);color:var(--crit)}
+.qds-high{background:rgba(255,107,53,.2);border:1px solid rgba(255,107,53,.4);color:var(--high)}
+.qds-medium{background:rgba(255,193,7,.2);border:1px solid rgba(255,193,7,.4);color:var(--med)}
+.qds-low{background:rgba(0,230,118,.2);border:1px solid rgba(0,230,118,.4);color:var(--low)}
+
+/* MULTI-VENDOR PANELS */
+.multi-vendor-grid{display:grid;gap:12px}
+.vendor-panel{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface)}
+.vendor-panel-header{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 13px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.vendor-panel-title{font-size:.76rem;font-weight:700;color:var(--text)}
+.vendor-panel-meta{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted)}
+
+/* CVE TABLE */
+.cve-table{width:100%;border-collapse:collapse}
+.cve-table thead tr{background:var(--surface2);border-bottom:1px solid var(--border)}
+.cve-table th{padding:7px 9px;text-align:left;font-size:.58rem;font-weight:700;
+  letter-spacing:.1em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.cve-table tbody tr{border-bottom:1px solid rgba(30,45,61,.35);
+  transition:background .15s;cursor:pointer;animation:rowIn .2s ease both}
+@keyframes rowIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+.cve-table tbody tr:hover{background:rgba(0,229,255,.035)}
+[data-theme="light"] .cve-table tbody tr:hover{background:rgba(0,119,170,.04)}
+.cve-table td{padding:8px 9px;font-size:.75rem;vertical-align:middle}
+
+.cve-id-cell{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:.72rem;white-space:nowrap}
+
+/* BOOKMARK STAR */
+.bm-star{background:none;border:none;cursor:pointer;font-size:.9rem;padding:1px 4px;
+  line-height:1;transition:transform .15s;color:var(--muted)}
+.bm-star:hover{transform:scale(1.3)}
+.bm-star.bookmarked{color:#ffc107}
+
+/* SEVERITY */
+.severity-badge{display:inline-block;padding:2px 6px;border-radius:3px;
+  font-size:.58rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;font-family:'Share Tech Mono',monospace;white-space:nowrap}
+.sev-CRITICAL{background:rgba(255,59,92,.15);color:var(--crit);border:1px solid rgba(255,59,92,.3)}
+.sev-HIGH{background:rgba(255,107,53,.15);color:var(--high);border:1px solid rgba(255,107,53,.3)}
+.sev-MEDIUM{background:rgba(255,193,7,.15);color:var(--med);border:1px solid rgba(255,193,7,.3)}
+.sev-LOW{background:rgba(0,230,118,.15);color:var(--low);border:1px solid rgba(0,230,118,.3)}
+.sev-NONE{background:rgba(74,97,119,.2);color:var(--muted);border:1px solid var(--border)}
+
+/* CVSS */
+.cvss-cell{display:flex;flex-direction:column;gap:2px;min-width:90px}
+.cvss-top{display:flex;align-items:center;gap:4px}
+.cvss-score{font-family:'Share Tech Mono',monospace;font-size:.82rem;min-width:24px}
+.cvss-ver{font-family:'Share Tech Mono',monospace;font-size:.54rem;padding:1px 3px;border-radius:2px;
+  background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);color:var(--accent)}
+.cvss-ver.v2{background:rgba(74,97,119,.2);border-color:var(--border);color:var(--muted)}
+.cvss-bar{height:2px;border-radius:2px;background:var(--border);width:100%;overflow:hidden}
+.cvss-fill{height:100%;border-radius:2px}
+
+/* FLAGS */
+.kev-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:3px;
+  font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-family:'Share Tech Mono',monospace;
+  background:rgba(255,59,92,.2);border:1px solid rgba(255,59,92,.5);color:var(--crit);
+  white-space:nowrap;animation:kevPulse 2s infinite}
+@keyframes kevPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,59,92,.3)}50%{box-shadow:0 0 0 3px rgba(255,59,92,0)}}
+.poc-badge{display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:3px;
+  font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-family:'Share Tech Mono',monospace;
+  background:rgba(255,107,53,.15);border:1px solid rgba(255,107,53,.4);color:var(--high);white-space:nowrap}
+.flags-cell{display:flex;flex-direction:column;gap:2px;min-width:72px}
+
+/* PRODUCTS */
+.products-cell{max-width:140px}
+.product-tag{display:inline-block;padding:1px 4px;border-radius:2px;font-size:.55rem;
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  margin:1px;white-space:nowrap;font-family:'Share Tech Mono',monospace}
+
+.desc-cell{max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.73rem;line-height:1.4}
+
+/* DATE CELLS */
+.date-cell{font-family:'Share Tech Mono',monospace;font-size:.64rem;white-space:nowrap}
+.date-pub{color:var(--muted)}.date-new-pub{color:var(--ok);font-weight:700}
+.date-mod{color:var(--muted)}.date-recent-mod{color:var(--med)}
+
+/* SKELETON */
+.skeleton{animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{opacity:.3}50%{opacity:.7}100%{opacity:.3}}
+.skel-row td{padding:10px}.skel-bar{height:8px;border-radius:3px;background:var(--surface2)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .ico{font-size:1.6rem;margin-bottom:7px}
+.empty-state p{font-size:.75rem}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted)}
+.page-btns{display:flex;gap:5px}
+.page-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:4px;padding:3px 9px;cursor:pointer;font-size:.7rem;transition:all .15s;font-family:'Syne',sans-serif}
+.page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);
+  z-index:200;display:none;align-items:center;justify-content:center;padding:18px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  max-width:680px;width:100%;max-height:87vh;overflow-y:auto;padding:20px;animation:modalIn .18s ease}
+@keyframes modalIn{from{transform:scale(.95);opacity:0}to{transform:none;opacity:1}}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}
+.modal-title{font-size:.9rem;font-weight:700;line-height:1.3}
+.modal-close{background:none;border:none;color:var(--muted);font-size:.95rem;cursor:pointer;flex-shrink:0}
+.modal-close:hover{color:var(--text)}
+.modal-section{margin-bottom:13px}
+.modal-label{font-size:.58rem;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.modal-body-text{font-size:.78rem;line-height:1.65;color:var(--text)}
+.modal-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px}
+.meta-item{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px}
+.meta-item .label{font-size:.56rem;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.meta-item .value{font-family:'Share Tech Mono',monospace;font-size:.8rem}
+.nvd-link{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;
+  background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);border-radius:6px;
+  color:var(--accent);font-size:.74rem;font-weight:600;text-decoration:none;transition:background .2s}
+.nvd-link:hover{background:rgba(0,229,255,.15)}
+.modal-flags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+
+/* QDS BREAKDOWN IN MODAL */
+.qds-breakdown{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 13px;margin-bottom:13px}
+.qds-breakdown-title{font-size:.58rem;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.qds-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.qds-bar-label{font-size:.6rem;color:var(--muted);width:100px;flex-shrink:0;font-family:'Share Tech Mono',monospace}
+.qds-bar-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.qds-bar-fill{height:100%;border-radius:3px}
+.qds-bar-val{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--text);min-width:28px;text-align:right}
+
+/* INPUTS */
+.input-group{margin-bottom:11px}
+.input-group label{display:block;font-size:.66rem;font-weight:700;letter-spacing:.08em;color:var(--muted);margin-bottom:3px}
+.input-group input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;
+  padding:7px 10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.78rem;transition:border-color .2s}
+.input-group input:focus{outline:none;border-color:var(--accent)}
+.btn-primary{padding:7px 15px;background:var(--accent);color:#000;border:none;border-radius:5px;
+  font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn-primary:hover{opacity:.85}
+.btn-secondary{padding:7px 15px;background:transparent;color:var(--muted);border:1px solid var(--border);
+  border-radius:5px;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;margin-right:5px}
+.btn-secondary:hover{border-color:var(--text);color:var(--text)}
+.portal-preview{background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.2);border-radius:5px;
+  padding:7px 11px;font-size:.7rem;color:var(--accent);margin-top:5px;display:none}
+
+/* RESOURCES */
+.resources-topbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:20px}
+.res-filter-chip{padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);
+  cursor:pointer;font-family:'Syne',sans-serif;font-size:.66rem;font-weight:700;color:var(--muted);transition:all .15s}
+.res-filter-chip:hover,.res-filter-chip.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.07)}
+.res-search-global{margin-left:auto;background:var(--surface);border:1px solid var(--border);
+  border-radius:5px;padding:4px 10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.72rem;width:170px;transition:border-color .2s}
+.res-search-global:focus{outline:none;border-color:var(--accent)}
+.res-search-global::placeholder{color:var(--muted)}
+.resources-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-top:16px}
+.resource-category{background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.resource-cat-header{display:flex;align-items:center;gap:8px;padding:10px 13px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.resource-cat-icon{font-size:.9rem}
+.resource-cat-title{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
+.resource-cat-badge{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 5px;border-radius:8px;border:1px solid var(--border);color:var(--muted)}
+.resource-list{padding:4px 0}
+.resource-link{display:flex;align-items:center;gap:8px;padding:7px 13px;text-decoration:none;transition:background .15s;border:none;background:none;width:100%;text-align:left;cursor:pointer}
+.resource-link:hover{background:rgba(0,229,255,.05)}
+.resource-link:hover .rl-name{color:var(--accent)}
+.resource-link:hover .rl-arrow{opacity:1;transform:translateX(2px)}
+.rl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.rl-info{flex:1;min-width:0}
+.rl-name{font-size:.76rem;font-weight:600;color:var(--text);transition:color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rl-desc{font-size:.64rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rl-arrow{color:var(--muted);font-size:.7rem;opacity:0;transition:all .15s;flex-shrink:0}
+.rl-tag{font-family:'Share Tech Mono',monospace;font-size:.54rem;padding:1px 4px;border-radius:2px;flex-shrink:0;font-weight:700;letter-spacing:.05em}
+.tag-gov{background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);color:var(--accent)}
+.tag-news{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.25);color:var(--high)}
+.tag-vuln{background:rgba(255,59,92,.1);border:1px solid rgba(255,59,92,.25);color:var(--crit)}
+.tag-intel{background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.25);color:var(--med)}
+.tag-tool{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);color:var(--low)}
+.tag-vendor{background:rgba(74,97,119,.2);border:1px solid var(--border);color:var(--muted)}
+
+/* PROXY SETUP BANNERS */
+.proxy-setup-banner{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;margin:10px 0 0;
+  background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.25);border-radius:8px}
+.proxy-active-banner{display:flex;align-items:center;gap:10px;padding:7px 14px;margin:8px 0 0;
+  background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.25);border-radius:7px}
+
+/* CORS HELP BANNER */
+.cors-help-banner{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin:10px 0 0;
+  background:rgba(255,59,92,.07);border:1px solid rgba(255,59,92,.3);border-radius:8px}
+.cors-fix-option{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:6px}
+.cors-fix-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#000;
+  font-size:.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+
+/* API KEY BANNER */
+.api-key-banner{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;margin:12px 0 0;
+  background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.3);border-radius:8px}
+.api-key-set{display:flex;align-items:center;gap:10px;padding:7px 14px;margin:10px 0 0;
+  background:rgba(0,230,118,.07);border:1px solid rgba(0,230,118,.25);border-radius:7px}
+
+/* MANUAL CVE LOOKUP BUTTON */
+.manual-cve-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;
+  background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);
+  border-radius:5px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.68rem;font-weight:700;
+  color:var(--accent);transition:all .2s}
+.manual-cve-btn:hover{background:rgba(0,229,255,.15)}
+
+/* MANUAL CVE LOOKUP MODAL */
+.lookup-result{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:14px;margin-top:12px}
+.lookup-result-id{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:var(--accent);font-weight:700;margin-bottom:8px}
+.lookup-result-desc{font-size:.76rem;color:var(--text);line-height:1.6;margin-bottom:10px}
+.lookup-result-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.pin-vendor-select{background:var(--surface);border:1px solid var(--border);border-radius:5px;
+  padding:4px 8px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.72rem;cursor:pointer}
+.pin-vendor-select:focus{outline:none;border-color:var(--accent)}
+.pin-btn{padding:5px 13px;background:var(--accent);color:#000;border:none;border-radius:5px;
+  font-family:'Syne',sans-serif;font-size:.74rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+.pin-btn:hover{opacity:.85}
+.lookup-status{font-family:'Share Tech Mono',monospace;font-size:.72rem;margin-top:8px}
+.lookup-status.ok{color:var(--ok)}.lookup-status.err{color:var(--crit)}.lookup-status.loading{color:var(--accent)}
+.pinned-tag{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:3px;
+  font-size:.58rem;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--accent);
+  font-family:'Share Tech Mono',monospace;font-weight:700}
+  .cve-layout{grid-template-columns:1fr}
+  .sidebar{position:static}
+  .multi-vendor-grid{grid-template-columns:1fr!important}
+  .desc-cell{max-width:120px}
+  .search-input{width:100%;margin-left:0}
+  .modal-meta{grid-template-columns:1fr 1fr}
+  .resources-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    <div class="logo-text">Secure<span>Watch</span></div>
+  </div>
+  <div class="header-right">
+    <div class="refresh-control">
+      <span style="font-size:.6rem;color:var(--muted);font-family:'Share Tech Mono',monospace">AUTO:</span>
+      <select class="refresh-select" id="autoRefreshSelect" onchange="setAutoRefresh(this.value)">
+        <option value="0">Off</option><option value="5">5m</option>
+        <option value="10">10m</option><option value="30">30m</option><option value="60">60m</option>
+      </select>
+      <span class="refresh-countdown" id="refreshCountdown"></span>
+    </div>
+    <span class="last-updated" id="lastUpdated">—</span>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️ Light</button>
+    <div class="live-badge"><div class="live-dot"></div>LIVE · CORS PROXY</div>
+  </div>
+</header>
+
+<!-- COMPACT STATS BAR -->
+<div class="stats-inline" id="statsInline">
+  <div class="si-item"><span class="si-label">Total</span>&nbsp;<span class="si-val t" id="sc-total">—</span></div>
+  <div class="si-item"><span class="si-label">Crit</span>&nbsp;<span class="si-val c" id="sc-crit">—</span></div>
+  <div class="si-item"><span class="si-label">High</span>&nbsp;<span class="si-val h" id="sc-high">—</span></div>
+  <div class="si-item"><span class="si-label">Med</span>&nbsp;<span class="si-val m" id="sc-med">—</span></div>
+  <div class="si-item"><span class="si-label">Low</span>&nbsp;<span class="si-val l" id="sc-low">—</span></div>
+  <div class="si-item"><span class="si-label">🔴 KEV</span>&nbsp;<span class="si-val k" id="sc-kev">—</span></div>
+  <div class="si-item"><span class="si-label">💣 PoC</span>&nbsp;<span class="si-val h" id="sc-poc">—</span></div>
+  <div class="si-item"><span class="si-label">🔄 Modified 14d</span>&nbsp;<span class="si-val t" id="sc-mod">—</span></div>
+  <div class="bm-badge" onclick="toggleBookmarkFilter()" title="View bookmarked CVEs">
+    <span class="bm-badge-label">⭐ Bookmarks</span>
+    <span class="bm-badge-count" id="bm-count">0</span>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showSection('cve')">🛡 CVE Intelligence</div>
+  <div class="nav-tab" onclick="showSection('resources')">🔗 Security Resources</div>
+</div>
+
+<div class="container">
+
+  <!-- ══ CVE SECTION ══ -->
+  <div class="nav-section active" id="sec-cve">
+
+    <div class="alert-banner" id="alertBanner">
+      <span style="font-size:.95rem;flex-shrink:0">🔔</span>
+      <span class="alert-text" id="alertText"></span>
+      <button class="alert-close" onclick="this.parentElement.classList.remove('show')">✕</button>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Vendor Advisories</span>
+      <div class="header-actions">
+        <button class="export-btn" onclick="exportCSV(false)">📤 Export CSV</button>
+        <button class="export-bm-btn" onclick="exportCSV(true)">⭐ Export Bookmarked</button>
+        <button class="manual-cve-btn" onclick="openManualCVE()">🔍 Lookup CVE</button>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">
+          <span class="spin-icon" id="spinIcon">⟳</span> Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="vendor-area" id="vendorArea"></div>
+
+    <!-- COMBINED: Period dropdown + AV chip filters on one line -->
+    <div class="combined-filter-bar">
+      <div class="cfb-group">
+        <span class="cfb-label">📅 Period</span>
+        <select class="ctrl-select" id="periodSelect" onchange="setDateRangeDrop(this.value)">
+          <option value="7">Last 7 Days</option>
+          <option value="30">Last 30 Days</option>
+          <option value="90" selected>Last 90 Days</option>
+          <option value="365">Last Year</option>
+          <option value="0">All Time</option>
+        </select>
+      </div>
+      <div class="cfb-divider"></div>
+      <div class="cfb-group">
+        <span class="cfb-label">⚔️ Attack Vector</span>
+        <button class="av-btn av-active" id="avAll"  onclick="setAVFilter('ALL',this)">All</button>
+        <button class="av-btn" id="avNet"  onclick="setAVFilter('NETWORK',this)">🌐 Network</button>
+        <button class="av-btn" id="avAdj"  onclick="setAVFilter('ADJACENT',this)">📡 Adjacent</button>
+        <button class="av-btn" id="avLoc"  onclick="setAVFilter('LOCAL',this)">💻 Local</button>
+        <button class="av-btn" id="avPhy"  onclick="setAVFilter('PHYSICAL',this)">🔌 Physical</button>
+      </div>
+    </div>
+
+    <!-- API KEY BANNER — shown when no key set -->
+    <div class="api-key-banner" id="apiKeyBanner">
+      <span style="font-size:1rem;flex-shrink:0">🔑</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.78rem;font-weight:700;color:var(--med);margin-bottom:2px">No NVD API Key — data may be incomplete</div>
+        <div style="font-size:.7rem;color:var(--muted);line-height:1.5">Without a key: 5 req/30s limit causes missing CVEs. <strong style="color:var(--text)">Free key = 50 req/30s + full accuracy.</strong>
+          Get yours in 2 mins: <a href="https://nvd.nist.gov/developers/request-an-api-key" target="_blank" style="color:var(--accent)">nvd.nist.gov/developers/request-an-api-key ↗</a>
+          — then paste it below.</div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
+          <input id="apiKeyInput" placeholder="Paste your NVD API key here…" style="flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.74rem"/>
+          <button onclick="saveApiKey()" style="padding:5px 14px;background:var(--accent);color:#000;border:none;border-radius:5px;font-family:'Syne',sans-serif;font-size:.74rem;font-weight:700;cursor:pointer">Save Key</button>
+          <button onclick="dismissKeyBanner()" style="padding:5px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:5px;font-family:'Syne',sans-serif;font-size:.72rem;cursor:pointer">Dismiss</button>
+        </div>
+      </div>
+    </div>
+    <!-- API KEY SET — shown when key is configured -->
+    <div class="api-key-set" id="apiKeySet" style="display:none">
+      <span>🔑</span>
+      <span style="font-size:.72rem;color:var(--ok);font-weight:700">NVD API Key Active — Full accuracy mode</span>
+      <span id="apiKeyPreview" style="font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)"></span>
+      <button onclick="clearApiKey()" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.7rem;padding:2px 6px">✕ Remove</button>
+    </div>
+
+    <!-- PROXY SETUP BANNER — shown until worker URL is configured -->
+    <div class="proxy-setup-banner" id="proxySetupBanner">
+      <span style="font-size:1rem;flex-shrink:0">⚡</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:3px">Set up your free proxy for reliable data — takes 3 minutes</div>
+        <div style="font-size:.7rem;color:var(--muted);line-height:1.6;margin-bottom:8px">
+          Public proxies are unreliable. Deploy your own free Cloudflare Worker instead — it never goes down and is 100% free (100k req/day).
+          <a href="https://workers.cloudflare.com" target="_blank" style="color:var(--accent)">workers.cloudflare.com ↗</a>
+          — see the setup guide below, then paste your worker URL here.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="proxyUrlInput" placeholder="https://securewatch-proxy.YOUR-NAME.workers.dev"
+            style="flex:1;min-width:260px;background:var(--surface2);border:1px solid var(--border);
+            border-radius:5px;padding:5px 10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.72rem"/>
+          <button onclick="testAndSaveProxy()" style="padding:5px 14px;background:var(--accent);color:#000;border:none;
+            border-radius:5px;font-family:'Syne',sans-serif;font-size:.74rem;font-weight:700;cursor:pointer">Test & Save</button>
+          <button onclick="document.getElementById('proxySetupBanner').style.display='none'"
+            style="padding:5px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);
+            border-radius:5px;font-family:'Syne',sans-serif;font-size:.72rem;cursor:pointer">Use public proxies for now</button>
+        </div>
+        <div id="proxyTestStatus" style="font-family:'Share Tech Mono',monospace;font-size:.7rem;margin-top:6px"></div>
+      </div>
+    </div>
+
+    <!-- PROXY ACTIVE BANNER -->
+    <div class="proxy-active-banner" id="proxyActiveBanner" style="display:none">
+      <span>⚡</span>
+      <span style="font-size:.72rem;color:var(--ok);font-weight:700">Your Cloudflare Worker proxy is active</span>
+      <span id="proxyUrlPreview" style="font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)"></span>
+      <button onclick="clearProxyUrl()" style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.7rem;padding:2px 6px">✕ Remove</button>
+    </div>
+    <div class="cors-help-banner" id="corsHelpBanner" style="display:none">
+      <div style="font-size:.9rem;flex-shrink:0">🚫</div>
+      <div style="flex:1">
+        <div style="font-size:.78rem;font-weight:700;color:var(--crit);margin-bottom:4px">Network blocked — "Failed to fetch"</div>
+        <div style="font-size:.72rem;color:var(--text);line-height:1.7">
+          Your browser is blocking requests to the NVD API. This happens when the file is opened directly from your computer (<code style="color:var(--accent)">file://</code>).<br>
+          <strong style="color:var(--med)">Fix — choose one of these options:</strong>
+        </div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px">
+          <div class="cors-fix-option">
+            <div class="cors-fix-num">1</div>
+            <div>
+              <div style="font-size:.75rem;font-weight:700;color:var(--text)">✅ Best — Upload to GitHub Pages (recommended)</div>
+              <div style="font-size:.7rem;color:var(--muted)">Rename to <code style="color:var(--accent)">index.html</code> → upload to your GitHub repo → live site at <code style="color:var(--accent)">mosycity.github.io/SecureWatch</code> — APIs work perfectly from HTTPS hosting.</div>
+            </div>
+          </div>
+          <div class="cors-fix-option">
+            <div class="cors-fix-num">2</div>
+            <div>
+              <div style="font-size:.75rem;font-weight:700;color:var(--text)">Serve locally with VS Code Live Server</div>
+              <div style="font-size:.7rem;color:var(--muted)">Install the <strong>Live Server</strong> extension in VS Code → right-click the file → <strong>Open with Live Server</strong>. Opens as <code style="color:var(--accent)">http://127.0.0.1:5500/</code> which allows API calls.</div>
+            </div>
+          </div>
+          <div class="cors-fix-option">
+            <div class="cors-fix-num">3</div>
+            <div>
+              <div style="font-size:.75rem;font-weight:700;color:var(--text)">Run a local server via terminal</div>
+              <div style="font-size:.7rem;color:var(--muted)">In the folder containing the file, run: <code style="color:var(--accent);background:var(--surface2);padding:1px 5px;border-radius:3px">python -m http.server 8080</code> → open <code style="color:var(--accent)">http://localhost:8080</code></div>
+            </div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('corsHelpBanner').style.display='none'" style="margin-top:10px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:4px 10px;cursor:pointer;font-size:.7rem">Dismiss</button>
+      </div>
+    </div>
+
+    <div class="status-row">
+      <span class="fetch-status" id="fetchStatus">Ready</span>
+    </div>
+
+    <div class="filters">
+      <span style="font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;">Sev:</span>
+      <button class="filter-chip active-crit" data-sev="CRITICAL" onclick="toggleSevFilter(this,'CRITICAL')">● Crit</button>
+      <button class="filter-chip active-high" data-sev="HIGH"     onclick="toggleSevFilter(this,'HIGH')">● High</button>
+      <button class="filter-chip active-med"  data-sev="MEDIUM"   onclick="toggleSevFilter(this,'MEDIUM')">● Med</button>
+      <button class="filter-chip active-low"  data-sev="LOW"      onclick="toggleSevFilter(this,'LOW')">● Low</button>
+      <span style="width:1px;height:14px;background:var(--border);margin:0 2px"></span>
+      <button class="filter-chip" id="kevFilterBtn"  onclick="toggleSpecialFilter('kev')">🔴 KEV</button>
+      <button class="filter-chip" id="pocFilterBtn"  onclick="toggleSpecialFilter('poc')">💣 PoC</button>
+      <button class="filter-chip" id="bmFilterBtn"   onclick="toggleBookmarkFilter()">⭐ Bookmarked</button>
+      <input class="search-input" id="searchInput" placeholder="Search CVE / keyword…" oninput="onSearch()"/>
+    </div>
+
+    <!-- MAIN CVE PANELS -->
+    <div class="cve-layout">
+      <div class="multi-vendor-grid" id="multiVendorGrid" style="grid-template-columns:1fr"></div>
+    </div>
+
+  </div><!-- /sec-cve -->
+
+  <!-- ══ RESOURCES SECTION ══ -->
+  <div class="nav-section" id="sec-resources">
+    <div class="resources-topbar">
+      <span style="font-size:.66rem;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;">Filter:</span>
+      <button class="res-filter-chip active" data-cat="all"    onclick="filterResources(this,'all')">All</button>
+      <button class="res-filter-chip" data-cat="gov"    onclick="filterResources(this,'gov')">🏛 Gov</button>
+      <button class="res-filter-chip" data-cat="news"   onclick="filterResources(this,'news')">📰 News</button>
+      <button class="res-filter-chip" data-cat="vuln"   onclick="filterResources(this,'vuln')">🔴 Vulns</button>
+      <button class="res-filter-chip" data-cat="intel"  onclick="filterResources(this,'intel')">🕵 Intel</button>
+      <button class="res-filter-chip" data-cat="tool"   onclick="filterResources(this,'tool')">🛠 Tools</button>
+      <button class="res-filter-chip" data-cat="vendor" onclick="filterResources(this,'vendor')">🏢 Vendors</button>
+      <input class="res-search-global" id="resSearch" placeholder="Search resources…" oninput="renderResources()"/>
+    </div>
+    <div class="resources-grid" id="resourcesGrid"></div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- CVE MODAL -->
+<div class="modal-overlay" id="cveModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">—</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-flags" id="modalFlags"></div>
+    <!-- QDS BREAKDOWN -->
+    <div class="qds-breakdown" id="modalQds"></div>
+    <div class="modal-meta" id="modalMeta"></div>
+    <div class="modal-section">
+      <div class="modal-label">Affected Products</div>
+      <div id="modalProducts" style="font-size:.76rem;color:var(--text);line-height:1.8">—</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Description</div>
+      <div class="modal-body-text" id="modalDesc">—</div>
+    </div>
+    <div class="modal-section" id="modalRefs"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="nvd-link" id="modalNvdLink" target="_blank" href="#">↗ NVD</a>
+      <a class="nvd-link" id="modalCisaLink" target="_blank" href="#"
+        style="display:none;border-color:rgba(255,59,92,.4);color:var(--crit);background:rgba(255,59,92,.06)">🔴 CISA KEV</a>
+    </div>
+  </div>
+</div>
+
+<!-- ADD VENDOR MODAL -->
+<div class="modal-overlay" id="addVendorModal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Add Vendor</div>
+      <button class="modal-close" onclick="closeAddVendor()">✕</button>
+    </div>
+    <p style="font-size:.74rem;color:var(--muted);margin-bottom:12px;">Vendor advisory portals are auto-detected from 28+ known vendors.</p>
+    <div class="input-group">
+      <label>NVD Keyword</label>
+      <input id="newVendorName" placeholder="e.g. fortinet" oninput="previewPortal()"/>
+    </div>
+    <div class="input-group">
+      <label>Display Name</label>
+      <input id="newVendorLabel" placeholder="e.g. Fortinet"/>
+    </div>
+    <div class="portal-preview" id="portalPreview">
+      🔗 Portal detected: <span id="portalPreviewUrl"></span>
+    </div>
+    <div style="margin-top:11px;">
+      <button class="btn-secondary" onclick="closeAddVendor()">Cancel</button>
+      <button class="btn-primary" onclick="addVendor()">Add Vendor</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL CVE LOOKUP MODAL -->
+<div class="modal-overlay" id="manualCVEModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">🔍 Manual CVE Lookup</div>
+      <button class="modal-close" onclick="closeManualCVE()">✕</button>
+    </div>
+    <p style="font-size:.74rem;color:var(--muted);margin-bottom:14px;line-height:1.6">
+      Look up any CVE by exact ID and pin it to a vendor — even if it doesn't appear in the main list.<br>
+      <strong style="color:var(--text)">Use this to fill accuracy gaps</strong> (e.g. CVE-2026-0532 for Kibana).
+    </p>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <div class="input-group" style="flex:1;margin:0">
+        <label>CVE ID</label>
+        <input id="manualCveId" placeholder="e.g. CVE-2026-0532" style="text-transform:uppercase"
+          onkeydown="if(event.key==='Enter')lookupCVE()"/>
+      </div>
+      <button onclick="lookupCVE()" class="btn-primary" style="height:34px;white-space:nowrap">Look Up</button>
+    </div>
+    <div class="lookup-status" id="lookupStatus" style="margin-top:8px"></div>
+    <div id="lookupResult" style="display:none">
+      <div class="lookup-result">
+        <div class="lookup-result-id" id="lrId"></div>
+        <div class="lookup-result-meta" id="lrMeta"></div>
+        <div class="lookup-result-desc" id="lrDesc"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border)">
+          <span style="font-size:.7rem;color:var(--muted);font-weight:700">Pin to vendor:</span>
+          <select class="pin-vendor-select" id="pinVendorSelect"></select>
+          <button class="pin-btn" onclick="pinCVE()">📌 Pin to Vendor</button>
+        </div>
+      </div>
+    </div>
+    <!-- PINNED CVEs LIST -->
+    <div id="pinnedListSection" style="margin-top:16px;display:none">
+      <div style="font-size:.64rem;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px">
+        📌 Pinned CVEs — manually added
+      </div>
+      <div id="pinnedList" style="display:flex;flex-direction:column;gap:5px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   NVD API KEY MANAGEMENT
+   Key stored in localStorage — never sent anywhere
+   except directly to api.nvd.nist.gov
+   Free key: nvd.nist.gov/developers/request-an-api-key
+   Key = 10x higher rate limit (50 req/30s vs 5)
+═══════════════════════════════════════════════ */
+let nvdApiKey = '';
+function loadApiKey(){
+  try{ nvdApiKey = localStorage.getItem('sw_nvd_key')||''; }catch(e){}
+  updateApiKeyUI();
+}
+function saveApiKey(){
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if(!val){ alert('Please paste your NVD API key first.'); return; }
+  // Basic format check — NVD keys are UUID format
+  if(val.length < 20){ alert('That doesn\'t look like a valid NVD API key. It should be a UUID like:\nxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'); return; }
+  nvdApiKey = val;
+  try{ localStorage.setItem('sw_nvd_key', val); }catch(e){}
+  updateApiKeyUI();
+  // Reload all data with new key
+  vendorData={};loadAll();
+}
+function clearApiKey(){
+  if(!confirm('Remove API key? Data accuracy will reduce.')) return;
+  nvdApiKey='';
+  try{ localStorage.removeItem('sw_nvd_key'); }catch(e){}
+  updateApiKeyUI();
+}
+function dismissKeyBanner(){
+  document.getElementById('apiKeyBanner').style.display='none';
+  try{ localStorage.setItem('sw_key_dismissed','1'); }catch(e){}
+}
+function updateApiKeyUI(){
+  const hasBanner = document.getElementById('apiKeyBanner');
+  const hasSet = document.getElementById('apiKeySet');
+  const dismissed = (() => { try{ return localStorage.getItem('sw_key_dismissed')==='1'; }catch(e){ return false; } })();
+  if(nvdApiKey){
+    if(hasBanner) hasBanner.style.display='none';
+    if(hasSet){ hasSet.style.display='flex'; document.getElementById('apiKeyPreview').textContent=nvdApiKey.substring(0,8)+'…'; }
+  } else {
+    if(hasBanner) hasBanner.style.display = dismissed ? 'none' : 'flex';
+    if(hasSet) hasSet.style.display='none';
+  }
+}
+loadApiKey();
+/* ═══════════════════════════════════════════════
+   VENDOR PORTAL KB
+═══════════════════════════════════════════════ */
+const VENDOR_PORTALS={cisco:{url:'https://sec.cloudapps.cisco.com/security/center/publicationListing.x',desc:'Cisco Security Advisories'},dell:{url:'https://www.dell.com/support/security/en-us',desc:'Dell Security Advisories'},juniper:{url:'https://supportportal.juniper.net/s/article/Juniper-SIRT-Advisories',desc:'Juniper SIRT Advisories'},'palo alto':{url:'https://security.paloaltonetworks.com/',desc:'Palo Alto Advisories'},paloalto:{url:'https://security.paloaltonetworks.com/',desc:'Palo Alto Advisories'},fortinet:{url:'https://www.fortiguard.com/psirt',desc:'Fortinet PSIRT'},microsoft:{url:'https://msrc.microsoft.com/update-guide/vulnerability',desc:'Microsoft MSRC'},vmware:{url:'https://www.vmware.com/security/advisories.html',desc:'VMware Advisories'},f5:{url:'https://my.f5.com/manage/s/article/K4602',desc:'F5 Advisories'},checkpoint:{url:'https://advisories.checkpoint.com/',desc:'Check Point Advisories'},citrix:{url:'https://support.citrix.com/securitybulletins',desc:'Citrix Security Bulletins'},ibm:{url:'https://www.ibm.com/support/pages/ibm-security-advisories',desc:'IBM Security Advisories'},oracle:{url:'https://www.oracle.com/security-alerts/',desc:'Oracle Security Alerts'},sap:{url:'https://support.sap.com/en/my-support/security-notes.html',desc:'SAP Security Notes'},adobe:{url:'https://helpx.adobe.com/security.html',desc:'Adobe Security Bulletins'},apple:{url:'https://support.apple.com/en-us/HT201222',desc:'Apple Security Updates'},google:{url:'https://cloud.google.com/support/bulletins',desc:'Google Cloud Bulletins'},amazon:{url:'https://aws.amazon.com/security/security-bulletins/',desc:'AWS Security Bulletins'},redhat:{url:'https://access.redhat.com/security/security-updates/',desc:'Red Hat Advisories'},ubuntu:{url:'https://ubuntu.com/security/notices',desc:'Ubuntu Security Notices'},debian:{url:'https://www.debian.org/security/',desc:'Debian Security'},sonicwall:{url:'https://psirt.global.sonicwall.com/vuln-list',desc:'SonicWall PSIRT'},aruba:{url:'https://asp.arubanetworks.com/notifications/security',desc:'Aruba Advisories'},zoom:{url:'https://explore.zoom.us/en/trust/security/security-bulletin/',desc:'Zoom Security Bulletins'},atlassian:{url:'https://confluence.atlassian.com/security',desc:'Atlassian Advisories'},apache:{url:'https://httpd.apache.org/security/vulnerabilities_24.html',desc:'Apache Security'},nginx:{url:'https://nginx.org/en/security_advisories.html',desc:'NGINX Advisories'}};
+function getPortal(kw){const k=(kw||'').toLowerCase().trim();if(VENDOR_PORTALS[k])return VENDOR_PORTALS[k];for(const[key,v]of Object.entries(VENDOR_PORTALS))if(k.includes(key)||key.includes(k))return v;return null;}
+function previewPortal(){const p=getPortal(document.getElementById('newVendorName').value);const pr=document.getElementById('portalPreview');if(p){document.getElementById('portalPreviewUrl').textContent=p.url;pr.style.display='block';}else pr.style.display='none';}
+
+/* ═══════════════════════════════════════════════
+   BASE RESOURCES
+═══════════════════════════════════════════════ */
+const BASE_RESOURCES=[
+  {cat:'gov',color:'#00e5ff',name:'CISA Advisories',desc:'US Cybersecurity advisories',url:'https://www.cisa.gov/news-events/cybersecurity-advisories',tag:'gov'},
+  {cat:'gov',color:'#00e5ff',name:'CISA KEV Catalog',desc:'Known Exploited Vulnerabilities',url:'https://www.cisa.gov/known-exploited-vulnerabilities-catalog',tag:'gov'},
+  {cat:'gov',color:'#00e5ff',name:'NVD (NIST)',desc:'National Vulnerability Database',url:'https://nvd.nist.gov/',tag:'gov'},
+  {cat:'gov',color:'#00e5ff',name:'US-CERT Alerts',desc:'US Computer Emergency Readiness Team',url:'https://www.cisa.gov/uscert/ncas/alerts',tag:'gov'},
+  {cat:'gov',color:'#00e5ff',name:'ENISA (EU)',desc:'EU Agency for Cybersecurity',url:'https://www.enisa.europa.eu/publications',tag:'gov'},
+  {cat:'gov',color:'#00e5ff',name:'NCSC UK',desc:'UK National Cyber Security Centre',url:'https://www.ncsc.gov.uk/section/reports-advisories/',tag:'gov'},
+  {cat:'news',color:'#ff6b35',name:'BleepingComputer',desc:'Breaking cybersecurity news',url:'https://www.bleepingcomputer.com/',tag:'news'},
+  {cat:'news',color:'#ff6b35',name:'The Hacker News',desc:'Cybersecurity news and breaches',url:'https://thehackernews.com/',tag:'news'},
+  {cat:'news',color:'#ff6b35',name:'Krebs on Security',desc:'Investigative security journalism',url:'https://krebsonsecurity.com/',tag:'news'},
+  {cat:'news',color:'#ff6b35',name:'Dark Reading',desc:'Enterprise security news',url:'https://www.darkreading.com/',tag:'news'},
+  {cat:'news',color:'#ff6b35',name:'SecurityWeek',desc:'Information security analysis',url:'https://www.securityweek.com/',tag:'news'},
+  {cat:'vuln',color:'#ff3b5c',name:'CVE Details',desc:'Searchable CVE database',url:'https://www.cvedetails.com/',tag:'vuln'},
+  {cat:'vuln',color:'#ff3b5c',name:'Vulners',desc:'Security intelligence search engine',url:'https://vulners.com/',tag:'vuln'},
+  {cat:'vuln',color:'#ff3b5c',name:'Exploit-DB',desc:'Offensive Security exploit database',url:'https://www.exploit-db.com/',tag:'vuln'},
+  {cat:'vuln',color:'#ff3b5c',name:'OSV (Google)',desc:'Open source vulnerability database',url:'https://osv.dev/',tag:'vuln'},
+  {cat:'vuln',color:'#ff3b5c',name:'GitHub Security Advisories',desc:'Advisories for open source packages',url:'https://github.com/advisories',tag:'vuln'},
+  {cat:'intel',color:'#ffc107',name:'Mandiant Threat Intel',desc:'Google Mandiant threat research',url:'https://www.mandiant.com/resources/blog',tag:'intel'},
+  {cat:'intel',color:'#ffc107',name:'Cisco Talos Blog',desc:'Threat intelligence from Talos',url:'https://blog.talosintelligence.com/',tag:'intel'},
+  {cat:'intel',color:'#ffc107',name:'Palo Alto Unit 42',desc:'Unit 42 threat research',url:'https://unit42.paloaltonetworks.com/',tag:'intel'},
+  {cat:'intel',color:'#ffc107',name:'CrowdStrike Blog',desc:'Adversary intelligence research',url:'https://www.crowdstrike.com/blog/',tag:'intel'},
+  {cat:'intel',color:'#ffc107',name:'MITRE ATT&CK',desc:'Adversary tactics and techniques',url:'https://attack.mitre.org/',tag:'intel'},
+  {cat:'intel',color:'#ffc107',name:'AlienVault OTX',desc:'Open threat exchange community',url:'https://otx.alienvault.com/',tag:'intel'},
+  {cat:'intel',color:'#ffc107',name:'VirusTotal',desc:'Analyze files, domains, IPs',url:'https://www.virustotal.com/',tag:'intel'},
+  {cat:'tool',color:'#00e676',name:'Shodan',desc:'Search engine for IoT devices',url:'https://www.shodan.io/',tag:'tool'},
+  {cat:'tool',color:'#00e676',name:'Have I Been Pwned',desc:'Check data breach exposure',url:'https://haveibeenpwned.com/',tag:'tool'},
+  {cat:'tool',color:'#00e676',name:'SSL Labs',desc:'SSL/TLS configuration analysis',url:'https://www.ssllabs.com/ssltest/',tag:'tool'},
+  {cat:'tool',color:'#00e676',name:'Censys',desc:'Internet asset discovery',url:'https://search.censys.io/',tag:'tool'},
+  {cat:'tool',color:'#00e676',name:'Greynoise',desc:'Distinguish attacks from noise',url:'https://www.greynoise.io/',tag:'tool'},
+  {cat:'vendor',color:'#4a6177',name:'Cisco Security Advisories',desc:'Official Cisco security advisories',url:'https://sec.cloudapps.cisco.com/security/center/publicationListing.x',tag:'vendor',vendorId:'cisco'},
+  {cat:'vendor',color:'#4a6177',name:'Dell Security Advisories',desc:'Dell security advisory database',url:'https://www.dell.com/support/security/en-us',tag:'vendor',vendorId:'dell'},
+  {cat:'vendor',color:'#4a6177',name:'Juniper Security Advisories',desc:'Juniper SIRT security bulletins',url:'https://supportportal.juniper.net/s/article/Juniper-SIRT-Advisories',tag:'vendor',vendorId:'juniper'},
+  {cat:'vendor',color:'#4a6177',name:'Palo Alto Security Advisories',desc:'Palo Alto security advisories',url:'https://security.paloaltonetworks.com/',tag:'vendor',vendorId:'paloalto'},
+  {cat:'vendor',color:'#4a6177',name:'Microsoft MSRC',desc:'Microsoft Security Response Center',url:'https://msrc.microsoft.com/update-guide/vulnerability',tag:'vendor',vendorId:'microsoft'},
+  {cat:'vendor',color:'#4a6177',name:'Fortinet PSIRT',desc:'Fortinet product security advisories',url:'https://www.fortiguard.com/psirt',tag:'vendor',vendorId:'fortinet'},
+];
+const CAT_META={gov:{label:'Government & Official',icon:'🏛'},news:{label:'News & Blogs',icon:'📰'},vuln:{label:'Vulnerability Databases',icon:'🔴'},intel:{label:'Threat Intelligence',icon:'🕵'},tool:{label:'Tools & Scanners',icon:'🛠'},vendor:{label:'Vendor Security Portals',icon:'🏢'}};
+function getResources(){const all=[...BASE_RESOURCES];vendors.forEach(v=>{if(all.some(r=>r.vendorId===v.id))return;const p=getPortal(v.keyword);if(p)all.push({cat:'vendor',color:'#4a6177',name:`${v.label} Security Advisories`,desc:p.desc,url:p.url,tag:'vendor',vendorId:v.id});});return all;}
+let activeResCat='all';
+function filterResources(el,cat){activeResCat=cat;document.querySelectorAll('.res-filter-chip').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderResources();}
+function renderResources(){const q=(document.getElementById('resSearch')?.value||'').toLowerCase();const grid=document.getElementById('resourcesGrid');const all=getResources();const filtered=all.filter(r=>{if(activeResCat!=='all'&&r.cat!==activeResCat)return false;if(q&&!r.name.toLowerCase().includes(q)&&!r.desc.toLowerCase().includes(q))return false;return true;});const grouped={};filtered.forEach(r=>{if(!grouped[r.cat])grouped[r.cat]=[];grouped[r.cat].push(r);});if(!filtered.length){grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--muted)"><div style="font-size:1.8rem;margin-bottom:8px">🔍</div><p>No resources match.</p></div>`;return;}grid.innerHTML=Object.entries(grouped).map(([cat,items])=>{const meta=CAT_META[cat]||{label:cat,icon:'•'};return`<div class="resource-category"><div class="resource-cat-header"><span class="resource-cat-icon">${meta.icon}</span><span class="resource-cat-title">${meta.label}</span><span class="resource-cat-badge">${items.length}</span></div><div class="resource-list">${items.map(r=>`<a class="resource-link" href="${r.url}" target="_blank" rel="noopener"><div class="rl-dot" style="background:${r.color}"></div><div class="rl-info"><div class="rl-name">${r.name}</div><div class="rl-desc">${r.desc}</div></div><span class="rl-tag tag-${r.tag}">${r.tag.toUpperCase()}</span><span class="rl-arrow">→</span></a>`).join('')}</div></div>`;}).join('');}
+
+/* ═══════════════════════════════════════════════
+   SECTION NAV
+═══════════════════════════════════════════════ */
+function showSection(id){document.querySelectorAll('.nav-tab').forEach((t,i)=>t.classList.toggle('active',['cve','resources'][i]===id));document.querySelectorAll('.nav-section').forEach(s=>s.classList.remove('active'));document.getElementById(`sec-${id}`)?.classList.add('active');if(id==='resources')renderResources();}
+
+/* ═══════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════════ */
+function toggleTheme(){const d=document.documentElement;const isDark=d.getAttribute('data-theme')==='dark';d.setAttribute('data-theme',isDark?'light':'dark');document.getElementById('themeBtn').textContent=isDark?'🌙 Dark':'☀️ Light';try{localStorage.setItem('sw_theme',isDark?'light':'dark');}catch(e){}}
+(function(){try{const t=localStorage.getItem('sw_theme');if(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('themeBtn').textContent=t==='light'?'🌙 Dark':'☀️ Light';}}catch(e){}})();
+
+/* ═══════════════════════════════════════════════
+   AUTO-REFRESH
+═══════════════════════════════════════════════ */
+let arInterval=null,cdTimer=null,arSecs=0;
+function setAutoRefresh(val){clearInterval(arInterval);clearInterval(cdTimer);document.getElementById('refreshCountdown').textContent='';const m=parseInt(val);if(m<=0)return;arSecs=m*60;startCD();arInterval=setInterval(()=>{arSecs=m*60;refreshAll();startCD();},m*60*1000);}
+function startCD(){clearInterval(cdTimer);let s=arSecs;const el=document.getElementById('refreshCountdown');el.textContent=fmtCD(s);cdTimer=setInterval(()=>{s--;el.textContent=fmtCD(s);if(s<=0)clearInterval(cdTimer);},1000);}
+function fmtCD(s){if(s<=0)return'';const m=Math.floor(s/60),r=s%60;return m>0?`${m}m${String(r).padStart(2,'0')}s`:`${r}s`;}
+
+/* ═══════════════════════════════════════════════
+   CISA KEV
+═══════════════════════════════════════════════ */
+let kevSet=new Set(),kevLoaded=false;
+async function loadKEV(){
+  if(kevLoaded)return;
+  try{
+    const kevUrl = buildProxyUrl('', true);
+    const r = await fetch(kevUrl, {mode:'cors'});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const raw = await r.json();
+    const j = raw.contents ? JSON.parse(raw.contents) : raw;
+    (j.vulnerabilities||[]).forEach(v=>kevSet.add(v.cveID));
+    kevLoaded=true;
+    if(Object.keys(vendorData).length) reRenderAll();
+  }catch(e){ console.warn('KEV unavailable:', e.message); }
+}
+
+/* ═══════════════════════════════════════════════
+   POC DETECTION
+═══════════════════════════════════════════════ */
+const POC_KW=['exploit','poc','proof-of-concept','proof_of_concept','github.com','exploit-db','exploitdb','metasploit','nuclei','0day','zero-day'];
+function hasPoc(cve){return POC_KW.some(k=>(cve.refs||[]).join(' ').toLowerCase().includes(k));}
+
+/* ═══════════════════════════════════════════════
+   ATTACK VECTOR PARSING
+═══════════════════════════════════════════════ */
+function parseAV(vector){
+  if(!vector)return'UNKNOWN';
+  // CVSS v3: AV:N, AV:A, AV:L, AV:P  |  CVSS v2: AV:N, AV:A, AV:L
+  const m=vector.match(/AV:([NALP])/i);
+  if(!m)return'UNKNOWN';
+  const map={N:'NETWORK',A:'ADJACENT',L:'LOCAL',P:'PHYSICAL'};
+  return map[m[1].toUpperCase()]||'UNKNOWN';
+}
+function parseACL(vector){if(!vector)return'?';const m=vector.match(/AC:([LMH])/i);return m?m[1].toUpperCase():'?';}
+function parsePR(vector){if(!vector)return'?';const m=vector.match(/PR:([LNH])/i);return m?m[1].toUpperCase():'?';}
+function parseUI(vector){if(!vector)return'?';const m=vector.match(/UI:([NR])/i);return m?m[1].toUpperCase():'?';}
+
+/* ═══════════════════════════════════════════════
+   QDS-STYLE RISK PRIORITY SCORE (1–100)
+   Methodology mirrors Qualys TruRisk/QDS:
+   - Base: CVSS score normalized to 0–60
+   - KEV bonus: +25 (actively exploited = highest signal)
+   - PoC bonus: +10 (exploit code available)
+   - Attack Vector: Network +5, Adjacent +2, Local 0
+   - Attack Complexity: Low +3, High 0
+   - Privileges Required: None +3, Low +1
+   - User Interaction: None +2
+   - Recency: modified last 14d +2
+   Capped at 100. Severity bands:
+   90–100=CRITICAL, 70–89=HIGH, 40–69=MEDIUM, 1–39=LOW
+═══════════════════════════════════════════════ */
+function calcQDS(cve){
+  let s=0;
+  // Base CVSS (0–10) → 0–60 points
+  const cvss=cve.score!==null?cve.score:0;
+  s+=Math.round(cvss/10*60);
+  // KEV: +25
+  if(kevSet.has(cve.id))s+=25;
+  // PoC: +10
+  if(hasPoc(cve))s+=10;
+  // Attack Vector bonus
+  const av=cve.av||'UNKNOWN';
+  if(av==='NETWORK')s+=5;else if(av==='ADJACENT')s+=2;
+  // Attack Complexity
+  if(cve.ac==='L')s+=3;
+  // Privileges Required
+  if(cve.pr==='N')s+=3;else if(cve.pr==='L')s+=1;
+  // User Interaction
+  if(cve.ui==='N')s+=2;
+  // Recency boost
+  if(cve.modified&&new Date(cve.modified)>=daysAgo(14))s+=2;
+  return Math.min(100,Math.max(1,s));
+}
+function qdsLevel(score){if(score>=90)return'critical';if(score>=70)return'high';if(score>=40)return'medium';return'low';}
+function qdsBand(score){if(score>=90)return'CRITICAL';if(score>=70)return'HIGH';if(score>=40)return'MEDIUM';return'LOW';}
+
+/* ═══════════════════════════════════════════════
+   BOOKMARKS
+═══════════════════════════════════════════════ */
+let bookmarks=new Set();
+function loadBookmarks(){try{const s=localStorage.getItem('sw_bookmarks');if(s)bookmarks=new Set(JSON.parse(s));}catch(e){}}
+function saveBookmarks(){try{localStorage.setItem('sw_bookmarks',JSON.stringify([...bookmarks]));}catch(e){}}
+function toggleBookmark(e,cveId){e.stopPropagation();if(bookmarks.has(cveId))bookmarks.delete(cveId);else bookmarks.add(cveId);saveBookmarks();updateBmCount();reRenderAll();}
+function updateBmCount(){document.getElementById('bm-count').textContent=bookmarks.size;}
+loadBookmarks();
+
+/* ═══════════════════════════════════════════════
+   VENDORS + STORAGE
+═══════════════════════════════════════════════ */
+const DEFAULT_VENDORS=[{id:'cisco',label:'Cisco',keyword:'cisco'},{id:'dell',label:'Dell',keyword:'dell'},{id:'juniper',label:'Juniper',keyword:'juniper'},{id:'paloalto',label:'Palo Alto',keyword:'palo alto'}];
+function loadVendors(){try{const s=localStorage.getItem('sw_vendors');if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.length)return p;}}catch(e){}return[...DEFAULT_VENDORS];}
+function saveVendors(){try{localStorage.setItem('sw_vendors',JSON.stringify(vendors));}catch(e){}}
+function loadSelected(){try{const s=localStorage.getItem('sw_selected');if(s){const p=JSON.parse(s);if(Array.isArray(p))return new Set(p);}}catch(e){}return new Set([vendors[0]?.id]);}
+function saveSelected(){try{localStorage.setItem('sw_selected',JSON.stringify([...selectedVendors]));}catch(e){}}
+let vendors=loadVendors();
+let selectedVendors=loadSelected();
+let vendorData={};
+let activeDateDays=90;
+let activeSeverities=new Set(['CRITICAL','HIGH','MEDIUM','LOW']);
+let kevFilterOn=false,pocFilterOn=false,bmFilterOn=false;
+let avFilter='ALL';
+let pageSt={};
+const PAGE_SIZE=12;
+let abortCtrls={};
+let allCVEsFlat=[];
+
+/* ═══════════════════════════════════════════════
+   DATE HELPERS
+═══════════════════════════════════════════════ */
+function nvdDate(d){return d.toISOString().replace('Z','').split('.')[0]+'.000';}
+function disp(d){return d?d.substring(0,10):'—';}
+function daysAgo(n){return new Date(Date.now()-n*86400000);}
+function isToday(ds){return ds&&ds.substring(0,10)===new Date().toISOString().substring(0,10);}
+function isRecent7(ds){return ds&&new Date(ds)>=daysAgo(7);}
+function isRecent14(ds){return ds&&new Date(ds)>=daysAgo(14);}
+
+/* ═══════════════════════════════════════════════
+   NVD API
+═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   CVE ACCURACY — CPE supplement map.
+   Only vendors where NVD keyword search alone
+   misses CVEs (because product is filed under a
+   different CPE vendor string). All other vendors
+   work fine with keyword search only.
+═══════════════════════════════════════════════ */
+const VENDOR_CPE_MAP = {
+
+  kibana: {cpeVendor:'elastic', cpeProduct:'kibana'},
+  elasticsearch: {cpeVendor:'elastic', cpeProduct:'elasticsearch'},
+
+  esxi: {cpeVendor:'vmware', cpeProduct:'esxi'},
+  vsphere: {cpeVendor:'vmware', cpeProduct:'vsphere'},
+
+  bigip: {cpeVendor:'f5', cpeProduct:'big-ip_access_policy_manager'},
+  'big-ip': {cpeVendor:'f5', cpeProduct:'big-ip_access_policy_manager'},
+
+  confluence: {cpeVendor:'atlassian', cpeProduct:'confluence_server'},
+  jira: {cpeVendor:'atlassian', cpeProduct:'jira'}
+
+};
+
+/* ═══════════════════════════════════════════════
+   NVD PROXY CONFIGURATION
+   Priority order:
+   1. Your own Cloudflare Worker (most reliable, free)
+   2. Public fallback proxies (unreliable but worth trying)
+
+   Your worker URL is saved in localStorage as sw_proxy_url
+   Set it via the proxy setup banner in the UI.
+═══════════════════════════════════════════════ */
+const NVD_BASE = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
+const CISA_KEV_URL = 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json';
+
+// Public fallback proxies (used only if no custom worker is set)
+const PUBLIC_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+let customWorkerUrl = '';
+let activeProxyIdx = 0;
+let proxyTested = false;
+
+async function testAndSaveProxy() {
+  const input = document.getElementById('proxyUrlInput');
+  const status = document.getElementById('proxyTestStatus');
+  const url = (input?.value||'').trim().replace(/\/$/, '');
+  if (!url) { if(status) status.textContent = '❌ Please enter your worker URL'; return; }
+  if(status) { status.style.color='var(--accent)'; status.textContent = '⏳ Testing connection…'; }
+  try {
+    // Test by fetching Log4Shell via the worker
+    const testUrl = `${url}/nvd?cveId=CVE-2021-44228`;
+    const r = await fetch(testUrl, {mode:'cors', signal: AbortSignal.timeout(10000)});
+    if (!r.ok) throw new Error(`Worker returned HTTP ${r.status}`);
+    const j = await r.json();
+    if (!j.vulnerabilities && !j.totalResults) throw new Error('Worker response format unexpected');
+    if(status) { status.style.color='var(--ok)'; status.textContent = '✅ Worker connected! Saving and reloading data…'; }
+    setTimeout(() => saveProxyUrl(url), 800);
+  } catch(e) {
+    if(status) { status.style.color='var(--crit)'; status.textContent = `❌ ${e.message} — check the worker URL and try again`; }
+  }
+}
+function loadProxyConfig() {
+  try { customWorkerUrl = localStorage.getItem('sw_proxy_url') || ''; } catch(e) {}
+  updateProxyUI();
+}
+
+function saveProxyUrl(url) {
+  customWorkerUrl = url.trim().replace(/\/$/, ''); // strip trailing slash
+  try { localStorage.setItem('sw_proxy_url', customWorkerUrl); } catch(e) {}
+  updateProxyUI();
+  vendorData = {};
+  loadAll();
+}
+
+function clearProxyUrl() {
+  customWorkerUrl = '';
+  try { localStorage.removeItem('sw_proxy_url'); } catch(e) {}
+  updateProxyUI();
+}
+
+function updateProxyUI() {
+  const banner = document.getElementById('proxySetupBanner');
+  const active = document.getElementById('proxyActiveBanner');
+  if (customWorkerUrl) {
+    if (banner) banner.style.display = 'none';
+    if (active) {
+      active.style.display = 'flex';
+      const preview = document.getElementById('proxyUrlPreview');
+      if (preview) preview.textContent = customWorkerUrl.replace('https://', '');
+    }
+  } else {
+    if (banner) banner.style.display = 'flex';
+    if (active) active.style.display = 'none';
+  }
+}
+
+// Build the actual fetch URL — own worker or public proxy fallback
+function buildProxyUrl(nvdParams, isKev = false) {
+  if (customWorkerUrl) {
+    if (isKev) return `${customWorkerUrl}/kev`;
+    return `${customWorkerUrl}/nvd?${nvdParams}`;
+  }
+  // Fall back to public proxy
+  const fullNvdUrl = isKev ? CISA_KEV_URL : `${NVD_BASE}?${nvdParams}`;
+  return PUBLIC_PROXIES[activeProxyIdx](fullNvdUrl);
+}
+
+// Rate-limit-safe NVD fetch
+let _lastNvdCall = 0;
+async function nvdFetch(params, signal) {
+  const delay = nvdApiKey ? 700 : 6500;
+  const now = Date.now();
+  const wait = Math.max(0, delay - (now - _lastNvdCall));
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  _lastNvdCall = Date.now();
+
+  const allParams = { resultsPerPage: 100, ...params };
+  if (nvdApiKey) allParams.apiKey = nvdApiKey;
+  const qs = new URLSearchParams(allParams).toString();
+
+  // Try with current proxy setting; if public proxy fails, try next one
+  const maxAttempts = customWorkerUrl ? 1 : PUBLIC_PROXIES.length;
+  let lastErr;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (!customWorkerUrl) activeProxyIdx = attempt;
+    try {
+      const proxyUrl = buildProxyUrl(qs, false);
+      const r = await fetch(proxyUrl, { signal, mode: 'cors' });
+      if (r.status === 429) throw new Error('Rate limited (429) — wait 30s then Refresh');
+      if (r.status === 403) throw new Error('API key invalid (403)');
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const raw = await r.json();
+      // Handle allorigins/codetabs wrapper: {contents: "...json string..."}
+      const data = raw.contents ? JSON.parse(raw.contents) : raw;
+      return data.vulnerabilities || [];
+    } catch(e) {
+      if (e.name === 'AbortError') throw e;
+      if (e.message.includes('429') || e.message.includes('403')) throw e;
+      lastErr = e;
+      if (!customWorkerUrl && attempt < PUBLIC_PROXIES.length - 1) {
+        console.warn(`Proxy ${attempt} failed, trying next…`);
+        continue;
+      }
+    }
+  }
+  throw lastErr || new Error('All proxies failed');
+}
+
+async function fetchNVD(vendor, days, signal) {
+  const dateParams = {};
+  if (days > 0) {
+    dateParams.pubStartDate = nvdDate(daysAgo(days));
+    dateParams.pubEndDate   = nvdDate(new Date());
+  }
+
+  const kw = vendor.keyword.toLowerCase().trim();
+  const cpeInfo = VENDOR_CPE_MAP[kw];
+
+  let allVulns = [];
+  const seen = new Set();
+
+  // Strategy 1: always keyword search first
+  const kwVulns = await nvdFetch({keywordSearch: vendor.keyword, ...dateParams}, signal);
+  kwVulns.forEach(v => { if(!seen.has(v.cve.id)){seen.add(v.cve.id);allVulns.push(v);} });
+
+  // Strategy 2: CPE search — ONLY for vendors where keyword alone is known to be incomplete
+  // (e.g. kibana is filed under elastic:kibana, not just "kibana" keyword)
+  if (cpeInfo) {
+    const cpeName = cpeInfo.cpeProduct
+  ? `cpe:2.3:a:${cpeInfo.cpeVendor}:${cpeInfo.cpeProduct}:*:*:*:*:*:*:*:*`
+  : `cpe:2.3:a:${cpeInfo.cpeVendor}:*:*:*:*:*:*:*:*:*`;
+    try {
+      const cpeVulns = await nvdFetch({cpeName, ...dateParams}, signal);
+      let added = 0;
+      cpeVulns.forEach(v => { if(!seen.has(v.cve.id)){seen.add(v.cve.id);allVulns.push(v);added++;} });
+    } catch(e) {
+      if(e.name==='AbortError') throw e;
+      console.warn(`CPE fetch skipped for ${vendor.label}:`, e.message);
+    }
+  }
+
+  const parsed = parseCVEs(allVulns);
+  parsed.sort((a,b) => b.published > a.published ? 1 : -1);
+  return parsed;
+}
+function parseCVEs(vulns){
+  return vulns.map(v=>{
+    const cve=v.cve,id=cve.id;
+    const desc=cve.descriptions?.find(d=>d.lang==='en')?.value||'No description.';
+    const metrics=cve.metrics||{};
+    let score=null,severity='NONE',vector=null,cvssVersion=null;
+    const m31=metrics.cvssMetricV31?.[0],m30=metrics.cvssMetricV30?.[0],m2=metrics.cvssMetricV2?.[0];
+    if(m31){score=m31.cvssData.baseScore;severity=m31.cvssData.baseSeverity;vector=m31.cvssData.vectorString;cvssVersion='3.1';}
+    else if(m30){score=m30.cvssData.baseScore;severity=m30.cvssData.baseSeverity;vector=m30.cvssData.vectorString;cvssVersion='3.0';}
+    else if(m2){score=m2.cvssData.baseScore;severity=m2.baseSeverity||sfScore(m2.cvssData.baseScore);vector=m2.cvssData.vectorString;cvssVersion='2.0';}
+    const av=parseAV(vector),ac=parseACL(vector),pr=parsePR(vector),ui=parseUI(vector);
+    const products=[];
+    try{(cve.configurations||[]).forEach(cfg=>(cfg.nodes||[]).forEach(node=>(node.cpeMatch||[]).forEach(m=>{if(m.vulnerable&&m.criteria){const pts=m.criteria.split(':');if(pts[4])products.push(pts[3]+(pts[4]&&pts[4]!=='*'?' '+pts[4]:''));}})));}catch(e){}
+    const refs=(cve.references||[]).slice(0,8).map(r=>r.url);
+    const published=cve.published?.substring(0,10)||'';
+    const modified=cve.lastModified?.substring(0,10)||'';
+    const obj={id,desc,score,severity:(severity||'NONE').toUpperCase(),vector,cvssVersion,av,ac,pr,ui,refs,published,modified,products:[...new Set(products)].slice(0,6)};
+    obj.qds=calcQDS(obj);
+    return obj;
+  });
+}
+function sfScore(s){if(s>=9)return'CRITICAL';if(s>=7)return'HIGH';if(s>=4)return'MEDIUM';if(s>0)return'LOW';return'NONE';}
+
+/* ═══════════════════════════════════════════════
+   LOAD
+═══════════════════════════════════════════════ */
+async function loadVendor(vendor,force=false){
+  if(vendorData[vendor.id]&&!force){reRenderAll();return;}
+  if(abortCtrls[vendor.id])abortCtrls[vendor.id].abort();
+  abortCtrls[vendor.id]=new AbortController();
+  setChipLoading(vendor.id,true);
+  const cpeInfo=VENDOR_CPE_MAP[vendor.keyword.toLowerCase().trim()];
+  const modeTag = nvdApiKey ? '🔑 key' : '⚠️ no key';
+  setStatus('fetching',`⏳ Fetching ${vendor.label} [${modeTag}]…`);
+  try{
+    const data=await fetchNVD(vendor,activeDateDays,abortCtrls[vendor.id].signal);
+    data.forEach(c=>{c.qds=calcQDS(c);});
+    vendorData[vendor.id]=data;
+    reInjectPinned(); // restore pinned CVEs after reload
+    setChipLoading(vendor.id,false);
+    setChipBadge(vendor.id,vendorData[vendor.id].length);
+    reRenderAll();
+    const total=Object.values(vendorData).flat().length;
+    setStatus('done',`✅ ${total} CVEs loaded [${modeTag}] · ${new Date().toLocaleTimeString()}`);
+    document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString();
+  }catch(e){
+    if(e.name==='AbortError')return;
+    setChipLoading(vendor.id,false);setChipBadge(vendor.id,'!');
+    if(e.message.includes('429')||e.message.includes('Rate')){
+      setStatus('err',`⚠️ Rate limited — ${nvdApiKey?'retry in 2s':'get a free API key for 10x limit'}. Click Refresh.`);
+    } else if(e.message.includes('403')){
+      setStatus('err','❌ API key invalid — check key in the banner above.');
+    } else if(e.message==='Failed to fetch'||e.message.includes('NetworkError')||e.message.includes('proxy')||e.message.includes('fetch')){
+      setStatus('err','❌ Proxy unreachable — check internet connection, then Refresh');
+    } else {
+      setStatus('err',`❌ ${vendor.label}: ${e.message}`);
+    }
+  }
+}
+async function loadAll(force=false){if(force)vendorData={};const sel=vendors.filter(v=>selectedVendors.has(v.id));for(const v of sel)await loadVendor(v,force);}
+async function refreshAll(){const btn=document.getElementById('refreshBtn');btn.classList.add('spinning');await loadAll(true);btn.classList.remove('spinning');}
+
+/* ═══════════════════════════════════════════════
+   VENDOR CHIPS
+═══════════════════════════════════════════════ */
+function renderVendorArea(){const area=document.getElementById('vendorArea');area.innerHTML=vendors.map(v=>`<div class="vendor-chip${selectedVendors.has(v.id)?' selected':''}" id="chip-${v.id}" onclick="toggleVendor('${v.id}')"><span class="vc-check">${selectedVendors.has(v.id)?'✓':''}</span>${escHtml(v.label)}<span class="vc-badge" id="badge-${v.id}">—</span>${vendors.length>1?`<button class="vc-remove" onclick="removeVendor(event,'${v.id}')">✕</button>`:''}</div>`).join('')+`<button class="select-all-btn" onclick="toggleSelectAll()">${selectedVendors.size===vendors.length?'Deselect All':'Select All'}</button><button class="add-vendor-btn" onclick="openAddVendor()">＋ Add Vendor</button>`;}
+function toggleVendor(id){if(selectedVendors.has(id)){if(selectedVendors.size===1)return;selectedVendors.delete(id);}else{selectedVendors.add(id);if(!vendorData[id])loadVendor(vendors.find(v=>v.id===id));}saveSelected();renderVendorArea();reRenderAll();}
+function toggleSelectAll(){if(selectedVendors.size===vendors.length)selectedVendors=new Set([vendors[0].id]);else{selectedVendors=new Set(vendors.map(v=>v.id));vendors.forEach(v=>{if(!vendorData[v.id])loadVendor(v);});}saveSelected();renderVendorArea();reRenderAll();}
+function setChipLoading(id,l){const c=document.getElementById(`chip-${id}`);if(c)c.classList.toggle('loading',l);if(l)setChipBadge(id,'…');}
+function setChipBadge(id,val){const el=document.getElementById(`badge-${id}`);if(el)el.textContent=val;}
+function removeVendor(e,id){e.stopPropagation();const v=vendors.find(x=>x.id===id);if(!v)return;if(!confirm(`Remove "${v.label}"?`))return;vendors=vendors.filter(x=>x.id!==id);selectedVendors.delete(id);if(selectedVendors.size===0)selectedVendors.add(vendors[0]?.id);delete vendorData[id];saveVendors();saveSelected();renderVendorArea();reRenderAll();renderResources();}
+
+/* ═══════════════════════════════════════════════
+   DATE + ATTACK VECTOR FILTERS
+═══════════════════════════════════════════════ */
+function setDateRangeDrop(days){activeDateDays=parseInt(days);vendorData={};pageSt={};loadAll();}
+function setAVFilter(val,el){
+  avFilter=val;
+  // Reset all AV buttons
+  document.querySelectorAll('.av-btn').forEach(b=>{
+    b.className='av-btn';
+  });
+  // Activate clicked one
+  if(el){
+    el.classList.add('av-active');
+    if(val==='NETWORK')el.classList.add('av-net');
+    else if(val==='ADJACENT')el.classList.add('av-adj');
+    else if(val==='LOCAL')el.classList.add('av-loc');
+    else if(val==='PHYSICAL')el.classList.add('av-phy');
+  }
+  pageSt={};reRenderAll();
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER ALL PANELS
+═══════════════════════════════════════════════ */
+function reRenderAll(){
+  const selected=vendors.filter(v=>selectedVendors.has(v.id));
+  const grid=document.getElementById('multiVendorGrid');
+  const cols=Math.min(selected.length,3);
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  grid.innerHTML=selected.map(v=>`
+    <div class="vendor-panel" id="panel-${v.id}">
+      <div class="vendor-panel-header">
+        <span class="vendor-panel-title">${escHtml(v.label)}</span>
+        <span class="vendor-panel-meta" id="panel-meta-${v.id}">—</span>
+      </div>
+      <table class="cve-table">
+        <thead><tr>
+          <th>⭐</th><th>CVE ID</th><th>QDS</th><th>Sev</th><th>CVSS</th>
+          <th>⚔️ AV</th><th>Flags</th><th>Products</th><th>Description</th>
+          <th>Published</th><th>Last Modified</th>
+        </tr></thead>
+        <tbody id="tbody-${v.id}"></tbody>
+      </table>
+      <div class="pagination" id="pag-${v.id}" style="display:none">
+        <span id="paginfo-${v.id}"></span>
+        <div class="page-btns">
+          <button class="page-btn" onclick="changePage('${v.id}',-1)">← Prev</button>
+          <button class="page-btn" onclick="changePage('${v.id}',1)">Next →</button>
+        </div>
+      </div>
+    </div>`).join('');
+  selected.forEach(v=>renderPanel(v));
+  updateStats();checkAlertBanner();updateBmCount();
+}
+
+function filterCVEs(data){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  return data.filter(cve=>{
+    if(!activeSeverities.has(cve.severity)&&cve.severity!=='NONE')return false;
+    if(kevFilterOn&&!kevSet.has(cve.id))return false;
+    if(pocFilterOn&&!hasPoc(cve))return false;
+    if(bmFilterOn&&!bookmarks.has(cve.id))return false;
+    if(avFilter!=='ALL'&&cve.av!==avFilter)return false;
+    if(q&&!cve.id.toLowerCase().includes(q)&&!cve.desc.toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+
+function renderPanel(vendor){
+  const id=vendor.id;
+  const tbody=document.getElementById(`tbody-${id}`);
+  const pag=document.getElementById(`pag-${id}`);
+  const meta=document.getElementById(`panel-meta-${id}`);
+  if(!tbody)return;
+  if(!vendorData[id]){tbody.innerHTML=skelRows();if(pag)pag.style.display='none';return;}
+  const filtered=filterCVEs(vendorData[id]);
+  // Sort by QDS desc
+  filtered.sort((a,b)=>b.qds-a.qds);
+  const page=pageSt[id]||0;
+  const totalPages=Math.ceil(filtered.length/PAGE_SIZE)||1;
+  const slice=filtered.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
+  if(meta)meta.textContent=`${filtered.length} CVEs`;
+  if(!slice.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="ico">🔍</div><p>No CVEs match filters.</p></div></td></tr>`;if(pag)pag.style.display='none';return;}
+  tbody.innerHTML=slice.map((cve,i)=>{
+    const score=cve.score!==null?cve.score.toFixed(1):'N/A';
+    const pct=cve.score!==null?Math.round(cve.score/10*100):0;
+    const clr=scoreColor(cve.score);
+    const isV2=cve.cvssVersion?.startsWith('2');
+    const isKev=kevSet.has(cve.id),isPoc=hasPoc(cve);
+    const isBm=bookmarks.has(cve.id);
+    const todayPub=isToday(cve.published);
+    const recentMod=isRecent14(cve.modified);
+    const pubCls=todayPub?'date-new-pub':'date-pub';
+    const modCls=recentMod?'date-recent-mod':'date-mod';
+    const productTags=cve.products.length?cve.products.slice(0,2).map(p=>`<span class="product-tag">${escHtml(p)}</span>`).join('')+(cve.products.length>2?`<span class="product-tag">+${cve.products.length-2}</span>`:''):'<span style="color:var(--muted);font-size:.6rem">—</span>';
+    const qLevel=qdsLevel(cve.qds);
+    return`<tr style="animation-delay:${i*.022}s${isKev?';background:rgba(255,59,92,.025)':''}${cve.pinned?';background:rgba(0,229,255,.025)':''}" onclick="openModal('${escHtml(cve.id)}','${id}')">
+      <td onclick="event.stopPropagation()"><button class="bm-star${isBm?' bookmarked':''}" onclick="toggleBookmark(event,'${cve.id}')" title="${isBm?'Remove bookmark':'Bookmark'}">${isBm?'⭐':'☆'}</button></td>
+      <td class="cve-id-cell">${escHtml(cve.id)}${todayPub?'<br><span style="color:var(--ok);font-size:.54rem">🆕TODAY</span>':''}${cve.pinned?'<br><span class="pinned-tag">📌 PINNED</span>':''}</td>
+      <td><span class="qds-pill qds-${qLevel}">${cve.qds}</span></td>
+      <td><span class="severity-badge sev-${cve.severity}">${cve.severity}</span></td>
+      <td><div class="cvss-cell">
+        <div class="cvss-top"><span class="cvss-score" style="color:${clr}">${score}</span>${cve.cvssVersion?`<span class="cvss-ver${isV2?' v2':''}">v${cve.cvssVersion}</span>`:''}</div>
+        <div class="cvss-bar"><div class="cvss-fill" style="width:${pct}%;background:${clr}"></div></div>
+      </div></td>
+      <td><span class="av-tag av-${cve.av}">${cve.av==='NETWORK'?'NET':cve.av==='ADJACENT'?'ADJ':cve.av==='LOCAL'?'LOC':cve.av==='PHYSICAL'?'PHY':'—'}</span></td>
+      <td><div class="flags-cell">
+        ${isKev?'<span class="kev-badge">🔴KEV</span>':''}
+        ${isPoc?'<span class="poc-badge">💣PoC</span>':''}
+        ${!isKev&&!isPoc?'<span style="color:var(--muted);font-size:.6rem">—</span>':''}
+      </div></td>
+      <td class="products-cell">${productTags}</td>
+      <td class="desc-cell" title="${escHtml(cve.desc)}">${escHtml(cve.desc)}</td>
+      <td class="date-cell"><span class="${pubCls}">${cve.published}</span></td>
+      <td class="date-cell"><span class="${modCls}">${cve.modified}${recentMod?' 🔄':''}</span></td>
+    </tr>`;
+  }).join('');
+  if(pag){pag.style.display='flex';const info=document.getElementById(`paginfo-${id}`);if(info)info.textContent=`${filtered.length} · p.${page+1}/${totalPages}`;const[prev,next]=pag.querySelectorAll('.page-btn');if(prev)prev.disabled=page===0;if(next)next.disabled=page>=totalPages-1;}
+}
+
+function changePage(id,dir){pageSt[id]=(pageSt[id]||0)+dir;const v=vendors.find(x=>x.id===id);if(v)renderPanel(v);document.getElementById(`panel-${id}`)?.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function onSearch(){pageSt={};reRenderAll();}
+function skelRows(){return Array(6).fill(0).map((_,i)=>`<tr class="skel-row skeleton" style="animation-delay:${i*.07}s">${Array(11).fill(0).map((_,j)=>`<td><div class="skel-bar" style="width:${[20,90,36,55,80,36,60,80,160,68,68][j]||60}px"></div></td>`).join('')}</tr>`).join('');}
+
+/* ═══════════════════════════════════════════════
+   STATS
+═══════════════════════════════════════════════ */
+function updateStats(){
+  const sel=vendors.filter(v=>selectedVendors.has(v.id));
+  const all=sel.flatMap(v=>vendorData[v.id]||[]);
+  allCVEsFlat=all;
+  const counts={CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0,NONE:0};
+  let kev=0,poc=0,mod=0;
+  all.forEach(c=>{counts[c.severity]=(counts[c.severity]||0)+1;if(kevSet.has(c.id))kev++;if(hasPoc(c))poc++;if(isRecent14(c.modified))mod++;});
+  document.getElementById('sc-total').textContent=all.length;
+  document.getElementById('sc-crit').textContent=counts.CRITICAL;
+  document.getElementById('sc-high').textContent=counts.HIGH;
+  document.getElementById('sc-med').textContent=counts.MEDIUM;
+  document.getElementById('sc-low').textContent=(counts.LOW||0)+(counts.NONE||0);
+  document.getElementById('sc-kev').textContent=kev;
+  document.getElementById('sc-poc').textContent=poc;
+  document.getElementById('sc-mod').textContent=mod;
+}
+
+/* ═══════════════════════════════════════════════
+   ALERT BANNER
+═══════════════════════════════════════════════ */
+function checkAlertBanner(){
+  const sel=vendors.filter(v=>selectedVendors.has(v.id));
+  const todayCVEs=sel.flatMap(v=>(vendorData[v.id]||[]).filter(c=>isToday(c.published)));
+  const kevToday=todayCVEs.filter(c=>kevSet.has(c.id));
+  const banner=document.getElementById('alertBanner'),txt=document.getElementById('alertText');
+  if(todayCVEs.length>0){txt.innerHTML=`🔔 <strong>${todayCVEs.length} new CVE${todayCVEs.length>1?'s':''} published TODAY</strong> across your vendors${kevToday.length>0?` — <strong style="color:var(--crit)">${kevToday.length} actively exploited (CISA KEV)!</strong>`:''}`;banner.classList.add('show');}
+  else banner.classList.remove('show');
+}
+
+/* ═══════════════════════════════════════════════
+   FILTERS
+═══════════════════════════════════════════════ */
+function setStatus(t,m){const el=document.getElementById('fetchStatus');el.className='fetch-status '+t;el.textContent=m;}
+function toggleSevFilter(el,sev){const cls={CRITICAL:'active-crit',HIGH:'active-high',MEDIUM:'active-med',LOW:'active-low'}[sev];if(activeSeverities.has(sev)){if(activeSeverities.size>1){activeSeverities.delete(sev);el.className='filter-chip';}}else{activeSeverities.add(sev);el.classList.add(cls);}pageSt={};reRenderAll();}
+function toggleSpecialFilter(type){if(type==='kev'){kevFilterOn=!kevFilterOn;document.getElementById('kevFilterBtn').classList.toggle('active-kev',kevFilterOn);}else{pocFilterOn=!pocFilterOn;document.getElementById('pocFilterBtn').classList.toggle('active-poc',pocFilterOn);}pageSt={};reRenderAll();}
+function toggleBookmarkFilter(){bmFilterOn=!bmFilterOn;document.getElementById('bmFilterBtn').classList.toggle('active-bm',bmFilterOn);pageSt={};reRenderAll();}
+
+/* ═══════════════════════════════════════════════
+   EXPORT CSV (with bookmarks option)
+═══════════════════════════════════════════════ */
+function exportCSV(bmOnly){
+  const sel=vendors.filter(v=>selectedVendors.has(v.id));
+  let all=sel.flatMap(v=>(vendorData[v.id]||[]).map(c=>({...c,_vendor:v.label})));
+  if(bmOnly)all=all.filter(c=>bookmarks.has(c.id));
+  if(!all.length){alert(bmOnly?'No bookmarked CVEs to export.':'No data to export.');return;}
+  const rows=[['Vendor','CVE ID','QDS Score','QDS Band','Severity','CVSS Score','CVSS Version','Attack Vector','Complexity','Priv Required','User Interaction','KEV','PoC','Bookmarked','Affected Products','Published','Last Modified','Description']];
+  all.forEach(c=>rows.push([c._vendor,c.id,c.qds,qdsBand(c.qds),c.severity,c.score!==null?c.score.toFixed(1):'N/A',c.cvssVersion||'N/A',c.av||'N/A',c.ac||'N/A',c.pr||'N/A',c.ui||'N/A',kevSet.has(c.id)?'YES':'NO',hasPoc(c)?'YES':'NO',bookmarks.has(c.id)?'YES':'NO',c.products.join('; ')||'—',c.published,c.modified,`"${(c.desc||'').replace(/"/g,'""')}"`]));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`SecureWatch${bmOnly?'_Bookmarked':''}_${new Date().toISOString().substring(0,10)}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+/* ═══════════════════════════════════════════════
+   CVE MODAL
+═══════════════════════════════════════════════ */
+function openModal(cveId,vendorId){
+  const pool=vendorId?(vendorData[vendorId]||[]):allCVEsFlat;
+  const cve=pool.find(c=>c.id===cveId);if(!cve)return;
+  const isKev=kevSet.has(cve.id),isPoc=hasPoc(cve),isBm=bookmarks.has(cve.id);
+  document.getElementById('modalTitle').innerHTML=`${cve.id} <button class="bm-star${isBm?' bookmarked':''}" onclick="toggleBookmark(event,'${cve.id}');document.getElementById('modalTitle').querySelector('.bm-star').className='bm-star'+(bookmarks.has('${cve.id}')?' bookmarked':'');document.getElementById('modalTitle').querySelector('.bm-star').textContent=bookmarks.has('${cve.id}')?'⭐':'☆'" style="font-size:1rem;vertical-align:middle">${isBm?'⭐':'☆'}</button>`;
+  document.getElementById('modalDesc').textContent=cve.desc;
+  document.getElementById('modalFlags').innerHTML=[
+    isKev?`<span class="kev-badge" style="font-size:.65rem;padding:3px 8px">🔴 ACTIVELY EXPLOITED (CISA KEV)</span>`:'',
+    isPoc?`<span class="poc-badge" style="font-size:.65rem;padding:3px 8px">💣 PUBLIC PoC / EXPLOIT</span>`:'',
+    isToday(cve.published)?`<span class="poc-badge" style="background:rgba(0,230,118,.1);border-color:rgba(0,230,118,.3);color:var(--ok);font-size:.65rem;padding:3px 8px">🆕 PUBLISHED TODAY</span>`:'',
+    isRecent14(cve.modified)?`<span class="poc-badge" style="background:rgba(255,193,7,.1);border-color:rgba(255,193,7,.3);color:var(--med);font-size:.65rem;padding:3px 8px">🔄 RECENTLY UPDATED</span>`:'',
+  ].filter(Boolean).join('');
+
+  // QDS BREAKDOWN
+  const cvssPoints=Math.round((cve.score||0)/10*60);
+  const kevPoints=isKev?25:0;
+  const pocPoints=isPoc?10:0;
+  const avPoints=cve.av==='NETWORK'?5:cve.av==='ADJACENT'?2:0;
+  const acPoints=cve.ac==='L'?3:0;
+  const prPoints=cve.pr==='N'?3:cve.pr==='L'?1:0;
+  const uiPoints=cve.ui==='N'?2:0;
+  const recPoints=isRecent14(cve.modified)?2:0;
+  document.getElementById('modalQds').innerHTML=`
+    <div class="qds-breakdown-title">QDS Risk Score Breakdown — <span class="qds-pill qds-${qdsLevel(cve.qds)}" style="font-size:.65rem">${cve.qds}/100 ${qdsBand(cve.qds)}</span></div>
+    ${[
+      ['CVSS Base Score ('+((cve.score||0).toFixed(1))+')',cvssPoints,60,'var(--accent)'],
+      ['KEV — Actively Exploited',kevPoints,25,'var(--crit)'],
+      ['PoC / Exploit Available',pocPoints,10,'var(--high)'],
+      ['Attack Vector ('+cve.av+')',avPoints,5,'var(--med)'],
+      ['Attack Complexity ('+cve.ac+')',acPoints,3,'var(--ok)'],
+      ['Privileges Required ('+cve.pr+')',prPoints,3,'var(--ok)'],
+      ['User Interaction ('+cve.ui+')',uiPoints,2,'var(--muted)'],
+      ['Recently Modified',recPoints,2,'var(--accent)'],
+    ].map(([label,val,max,clr])=>`<div class="qds-bar-row">
+      <span class="qds-bar-label">${label}</span>
+      <div class="qds-bar-track"><div class="qds-bar-fill" style="width:${max>0?Math.round(val/max*100):0}%;background:${clr}"></div></div>
+      <span class="qds-bar-val">+${val}</span>
+    </div>`).join('')}`;
+
+  const score=cve.score!==null?cve.score.toFixed(1):'N/A';
+  const isV2=cve.cvssVersion?.startsWith('2');
+  document.getElementById('modalMeta').innerHTML=`
+    <div class="meta-item"><div class="label">Severity</div><div class="value"><span class="severity-badge sev-${cve.severity}">${cve.severity}</span></div></div>
+    <div class="meta-item"><div class="label">CVSS${cve.cvssVersion?` v${cve.cvssVersion}`:''}</div><div class="value" style="color:${scoreColor(cve.score)}">${score}</div></div>
+    <div class="meta-item"><div class="label">Attack Vector</div><div class="value"><span class="av-tag av-${cve.av}">${cve.av}</span></div></div>
+    <div class="meta-item"><div class="label">Complexity / PR / UI</div><div class="value" style="font-size:.7rem;color:var(--muted)">${cve.ac} / ${cve.pr} / ${cve.ui}</div></div>
+    <div class="meta-item"><div class="label">Published</div><div class="value">${cve.published}</div></div>
+    <div class="meta-item"><div class="label">Last Modified</div><div class="value" style="color:${isRecent14(cve.modified)?'var(--med)':'inherit'}">${cve.modified}</div></div>
+    <div class="meta-item" style="grid-column:1/-1"><div class="label">CVSS Vector</div><div class="value" style="font-size:.62rem;word-break:break-all;color:var(--muted)">${cve.vector||'N/A'}</div></div>`;
+
+  document.getElementById('modalProducts').innerHTML=cve.products.length?cve.products.map(p=>`<span class="product-tag" style="font-size:.7rem;padding:2px 7px">${escHtml(p)}</span>`).join(' '):'<span style="color:var(--muted)">No product data</span>';
+  document.getElementById('modalRefs').innerHTML=cve.refs.length?`<div class="modal-label">References</div>${cve.refs.map(r=>`<div style="margin:3px 0"><a href="${r}" target="_blank" style="color:var(--accent);font-size:.7rem;word-break:break-all">${r}</a></div>`).join('')}`:'';
+  document.getElementById('modalNvdLink').href=`https://nvd.nist.gov/vuln/detail/${cveId}`;
+  const cl=document.getElementById('modalCisaLink');cl.style.display=isKev?'inline-flex':'none';if(isKev)cl.href='https://www.cisa.gov/known-exploited-vulnerabilities-catalog';
+  document.getElementById('cveModal').classList.add('open');
+}
+function closeModal(){document.getElementById('cveModal').classList.remove('open');}
+
+/* ═══════════════════════════════════════════════
+   ADD VENDOR
+═══════════════════════════════════════════════ */
+function openAddVendor(){document.getElementById('addVendorModal').classList.add('open');}
+function closeAddVendor(){document.getElementById('addVendorModal').classList.remove('open');}
+function addVendor(){
+  const keyword=document.getElementById('newVendorName').value.trim().toLowerCase();
+  const label=document.getElementById('newVendorLabel').value.trim();
+  if(!keyword||!label){alert('Please fill in both fields.');return;}
+  const id=keyword.replace(/\s+/g,'_');
+  if(vendors.find(v=>v.id===id)){alert('Vendor already added.');return;}
+  vendors.push({id,label,keyword});selectedVendors.add(id);saveVendors();saveSelected();
+  document.getElementById('newVendorName').value='';document.getElementById('newVendorLabel').value='';
+  document.getElementById('portalPreview').style.display='none';
+  closeAddVendor();renderVendorArea();loadVendor(vendors.find(v=>v.id===id));renderResources();
+}
+
+/* ═══════════════════════════════════════════════
+   MANUAL CVE LOOKUP + PIN SYSTEM
+   Allows looking up any CVE by exact ID and
+   pinning it to a vendor panel even if NVD
+   keyword search missed it.
+   Pinned CVEs stored in localStorage, persist
+   across refreshes, shown with 📌 badge.
+═══════════════════════════════════════════════ */
+let corsShown = false;
+function showCORSHelp(){
+  if(corsShown) return;
+  corsShown = true;
+  const b = document.getElementById('corsHelpBanner');
+  if(b) b.style.display = 'flex';
+}
+let lookupCache = {}; // cveId → parsed cve object
+
+function loadPinned(){
+  try{ const s=localStorage.getItem('sw_pinned');if(s)pinnedCVEs=JSON.parse(s)||{}; }catch(e){}
+}
+function savePinned(){
+  try{ localStorage.setItem('sw_pinned',JSON.stringify(pinnedCVEs)); }catch(e){}
+}
+loadPinned();
+
+function openManualCVE(){
+  document.getElementById('manualCVEModal').classList.add('open');
+  // Populate vendor select
+  const sel=document.getElementById('pinVendorSelect');
+  sel.innerHTML=vendors.map(v=>`<option value="${v.id}">${escHtml(v.label)}</option>`).join('');
+  document.getElementById('lookupResult').style.display='none';
+  document.getElementById('lookupStatus').textContent='';
+  document.getElementById('manualCveId').value='';
+  renderPinnedList();
+}
+function closeManualCVE(){ document.getElementById('manualCVEModal').classList.remove('open'); }
+
+async function lookupCVE(){
+  let id = document.getElementById('manualCveId').value.trim().toUpperCase();
+  if(!id){ setLookupStatus('err','Please enter a CVE ID.'); return; }
+  if(!id.startsWith('CVE-')) id = 'CVE-'+id;
+  document.getElementById('manualCveId').value = id;
+
+  // Check cache first
+  if(lookupCache[id]){
+    showLookupResult(lookupCache[id]);
+    return;
+  }
+
+  setLookupStatus('loading',`⏳ Looking up ${id} on NVD…`);
+  document.getElementById('lookupResult').style.display='none';
+
+  try {
+    const allParams = {cveId: id, ...(nvdApiKey ? {apiKey: nvdApiKey} : {})};
+    const qs = new URLSearchParams(allParams).toString();
+    const proxyUrl = buildProxyUrl(qs, false);
+    const r = await fetch(proxyUrl, {mode:'cors'});
+
+    if(!r.ok){
+      setLookupStatus('err',`❌ ${id} not found in NVD. It may be reserved/pending publication.`);
+      return;
+    }
+    const raw = await r.json();
+    const j = raw.contents ? JSON.parse(raw.contents) : raw;
+    const vulns = j.vulnerabilities||[];
+    if(!vulns.length){
+      setLookupStatus('err',`❌ ${id} not found — may be reserved or not yet published in NVD.`);
+      return;
+    }
+    const parsed = parseCVEs(vulns);
+    if(!parsed.length){ setLookupStatus('err','❌ Could not parse CVE data.'); return; }
+    const cve = parsed[0];
+    cve.qds = calcQDS(cve);
+    lookupCache[id] = cve;
+    setLookupStatus('ok',`✅ Found ${id}`);
+    showLookupResult(cve);
+  } catch(e) {
+    setLookupStatus('err',`❌ Lookup failed: ${e.message}`);
+  }
+}
+
+function showLookupResult(cve){
+  document.getElementById('lookupResult').style.display='block';
+  document.getElementById('lrId').innerHTML=`${cve.id} <span class="qds-pill qds-${qdsLevel(cve.qds)}">${cve.qds}/100</span>`;
+  document.getElementById('lrMeta').innerHTML=`
+    <span class="severity-badge sev-${cve.severity}">${cve.severity}</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:.74rem;color:${scoreColor(cve.score)}">${cve.score!==null?cve.score.toFixed(1):'N/A'}</span>
+    <span class="av-tag av-${cve.av}">${cve.av}</span>
+    ${kevSet.has(cve.id)?'<span class="kev-badge">🔴 KEV</span>':''}
+    ${hasPoc(cve)?'<span class="poc-badge">💣 PoC</span>':''}
+    <span style="font-family:'Share Tech Mono',monospace;font-size:.64rem;color:var(--muted)">${cve.published}</span>`;
+  document.getElementById('lrDesc').textContent = cve.desc.length>200 ? cve.desc.substring(0,200)+'…' : cve.desc;
+}
+
+function setLookupStatus(type, msg){
+  const el=document.getElementById('lookupStatus');
+  el.className='lookup-status '+type;
+  el.textContent=msg;
+}
+
+function pinCVE(){
+  const id = document.getElementById('manualCveId').value.trim().toUpperCase();
+  const vendorId = document.getElementById('pinVendorSelect').value;
+  const cve = lookupCache[id];
+  if(!cve || !vendorId){ alert('Look up a CVE first.'); return; }
+
+  if(!pinnedCVEs[vendorId]) pinnedCVEs[vendorId]=[];
+  if(pinnedCVEs[vendorId].find(c=>c.id===id)){
+    setLookupStatus('ok',`✅ ${id} already pinned to ${vendors.find(v=>v.id===vendorId)?.label}`);
+    return;
+  }
+  // Mark as pinned
+  const pinned = {...cve, pinned:true};
+  pinnedCVEs[vendorId].push(pinned);
+  savePinned();
+
+  // Also inject into vendorData so it shows in the panel immediately
+  if(!vendorData[vendorId]) vendorData[vendorId]=[];
+  if(!vendorData[vendorId].find(c=>c.id===id)){
+    vendorData[vendorId].unshift(pinned);
+  }
+
+  setChipBadge(vendorId, vendorData[vendorId].length);
+  reRenderAll();
+  renderPinnedList();
+  setLookupStatus('ok',`📌 ${id} pinned to ${vendors.find(v=>v.id===vendorId)?.label}!`);
+  updateStats();
+}
+
+function unpinCVE(cveId, vendorId){
+  if(pinnedCVEs[vendorId]) pinnedCVEs[vendorId]=pinnedCVEs[vendorId].filter(c=>c.id!==cveId);
+  if(vendorData[vendorId])  vendorData[vendorId]=vendorData[vendorId].filter(c=>c.id!==cveId);
+  savePinned();
+  setChipBadge(vendorId, (vendorData[vendorId]||[]).length);
+  reRenderAll();
+  renderPinnedList();
+  updateStats();
+}
+
+function renderPinnedList(){
+  const section=document.getElementById('pinnedListSection');
+  const list=document.getElementById('pinnedList');
+  const allPinned=Object.entries(pinnedCVEs).flatMap(([vid,cves])=>cves.map(c=>({...c,_vid:vid})));
+  if(!allPinned.length){ section.style.display='none'; return; }
+  section.style.display='block';
+  list.innerHTML=allPinned.map(c=>{
+    const vname=vendors.find(v=>v.id===c._vid)?.label||c._vid;
+    return`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;flex-wrap:wrap">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent);flex:1">${c.id}</span>
+      <span class="severity-badge sev-${c.severity}" style="font-size:.56rem">${c.severity}</span>
+      <span class="pinned-tag">📌 ${escHtml(vname)}</span>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted)">${c.published}</span>
+      <button onclick="unpinCVE('${c.id}','${c._vid}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.7rem;padding:2px 5px" title="Unpin">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// Re-inject pinned CVEs after every data reload so they survive refreshes
+function reInjectPinned(){
+  Object.entries(pinnedCVEs).forEach(([vid,cves])=>{
+    if(!vendorData[vid]) vendorData[vid]=[];
+    cves.forEach(c=>{
+      if(!vendorData[vid].find(x=>x.id===c.id)) vendorData[vid].unshift(c);
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════ */
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function scoreColor(s){if(s===null)return'var(--muted)';if(s>=9)return'var(--crit)';if(s>=7)return'var(--high)';if(s>=4)return'var(--med)';return'var(--low)';}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+
+/* ═══════════════════════════════════════════════
+   INIT — test proxy first, then load data
+═══════════════════════════════════════════════ */
+async function testProxy(){
+  setStatus('fetching', '🔄 Testing connection…');
+  // If custom worker is set, test it directly
+  if (customWorkerUrl) {
+    try {
+      const testUrl = `${customWorkerUrl}/nvd?cveId=CVE-2021-44228`;
+      const r = await fetch(testUrl, {mode:'cors', signal: AbortSignal.timeout(10000)});
+      if (r.ok) { setStatus('done', '✅ Connected via your Cloudflare Worker — loading vendors…'); return true; }
+    } catch(e) { /* fall through to public proxies */ }
+  }
+  // Try public proxies
+  for(let i=0; i<PUBLIC_PROXIES.length; i++){
+    try{
+      const testUrl = `${NVD_BASE}?cveId=CVE-2021-44228`;
+      const proxied = PUBLIC_PROXIES[i](testUrl);
+      const r = await fetch(proxied, {signal: AbortSignal.timeout(8000), mode:'cors'});
+      if(r.ok){
+        activeProxyIdx = i;
+        const proxyNames = ['allorigins.win','corsproxy.io','codetabs.com'];
+        setStatus('done', `✅ Connected via ${proxyNames[i]} (public proxy) — loading vendors…`);
+        return true;
+      }
+    }catch(e){ /* try next */ }
+  }
+  setStatus('err','❌ All proxies failed — set up your free Cloudflare Worker (see blue banner above).');
+  return false;
+}
+
+async function init(){
+  loadProxyConfig();
+  renderVendorArea();
+  reRenderAll();
+  const ok = await testProxy();
+  if(ok){ loadKEV(); loadAll(); }
+}
+init();
+</script>
+</body>
+</html>
